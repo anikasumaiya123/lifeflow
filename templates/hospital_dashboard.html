@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Hospital Blood Bank Portal - LifeFlow BD{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  
+  <!-- Hospital Overview Header -->
+  <div class="dashboard-header-card">
+    <div class="donor-info-group">
+      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
+        
+      </div>
+      <div>
+        <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
+        <div class="donor-details-sub">
+          <span>Hospital / Medical Center Portal</span>
+          <span>•</span>
+          <span> {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}</span>
+          <span>•</span>
+          <span> {{ profile.phone_number }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{% url 'post_request' %}" class="btn-primary" style="width: auto; padding: 10px 18px;">
+         Broadcast Hospital Request
+      </a>
+    </div>
+  </div>
+
+  <!-- Dashboard Stats -->
+  <div class="stat-summary-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #34D399;">{{ total_units_in_stock }} <span style="font-size:1rem; color:var(--text-muted);">Bags</span></div>
+      <div class="dash-stat-lbl">Total Blood Stock</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val">{{ active_requests_count }}</div>
+      <div class="dash-stat-lbl">Active Hospital Requests</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #60A5FA;">8</div>
+      <div class="dash-stat-lbl">Tracked Blood Types</div>
+    </div>
+  </div>
+
+  <!-- Inventory Grid -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <h2 class="dash-card-title">
+         Blood Bank Unit Inventory
+      </h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+      {% for item in inventory %}
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 1.2rem; border-radius: var(--radius-md);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <span class="blood-pill" style="font-size: 1.1rem; padding: 6px 14px; background: var(--primary);">{{ item.blood_group }}</span>
+            <span style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">{{ item.units }} <small style="font-size:0.75rem; color:var(--text-muted);">Units</small></span>
+          </div>
+
+          <form method="POST" action="{% url 'update_hospital_inventory' %}" style="display: flex; gap: 6px;">
+            {% csrf_token %}
+            <input type="hidden" name="blood_group" value="{{ item.blood_group }}">
+            <input type="number" name="units" value="{{ item.units }}" min="0" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" required>
+            <button type="submit" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; background: rgba(16,185,129,0.2); color: #34D399; border-color: rgba(16,185,129,0.4);">
+              Save
+            </button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Lower Section: Verify Donor Donation & Hospital Requests -->
+  <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    
+    <!-- Verify Donor Donation Form Card -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2 class="dash-card-title">
+          ✓ Verify & Record Donor Donation
+        </h2>
+      </div>
+
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Record completed blood donations at your medical facility to credit the donor's official 6-month donation history.
+      </p>
+
+      <form method="POST" action="{% url 'hospital_verify_donation' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Donor Phone Number (+880)</label>
+          <input type="text" name="donor_phone" class="form-control" placeholder="+880 1712-345678" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Units Donated</label>
+            <input type="number" name="units_donated" value="1" min="1" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Patient / Recipient Name</label>
+            <input type="text" name="recipient_name" class="form-control" placeholder="e.g. Stock or Patient Name">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Hospital Verification Notes</label>
+          <input type="text" name="notes" class="form-control" placeholder="e.g. Donation verified at DMC Hospital">
+        </div>
+
+        <button type="submit" class="btn-primary">
+          <span>Verify & Log Donation</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Hospital Posted Requests Summary -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2 class="dash-card-title">
+          Active Hospital Requests
+        </h2>
+        <a href="{% url 'my_requests' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">View All →</a>
+      </div>
+
+      {% if hospital_requests %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for req in hospital_requests %}
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
+                <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
+                  Units: {{ req.units_required }} • Status: <strong>{{ req.get_status_display }}</strong>
+                </div>
+              </div>
+              <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">
+                Find Matches
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+          <p style="font-size: 0.9rem;">No active requests broadcasted by your hospital.</p>
+          <a href="{% url 'post_request' %}" class="btn-secondary" style="display: inline-flex; margin-top: 0.75rem;">
+             Post Request
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

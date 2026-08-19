@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Donor Portal Dashboard - LifeFlow BD{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  
+  <!-- Donor Overview Header Card -->
+  <div class="dashboard-header-card">
+    <div class="donor-info-group">
+      <div class="donor-avatar-badge">
+        {{ profile.blood_group }}
+      </div>
+      <div>
+        <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
+        <div class="donor-details-sub">
+          <span>📍 {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}</span>
+          <span>•</span>
+          <span>📞 {{ profile.phone_number }}</span>
+          <span>•</span>
+          <span style="color: var(--primary); font-weight: 700;">Blood Group: {{ profile.blood_group }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Availability Status Toggle -->
+    <div class="availability-controls">
+      <button type="button" id="toggleAvailabilityBtn" 
+              class="availability-toggle-btn {% if profile.emergency_available %}is-available{% else %}is-unavailable{% endif %}"
+              onclick="toggleEmergencyStatus()">
+        <span id="statusIndicatorDot" class="pulse-dot"></span>
+        <span id="statusText">{% if profile.emergency_available %}Available for Emergency Alerts{% else %}Unavailable for Donating{% endif %}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dashboard Main Grid -->
+  <div class="dashboard-grid">
+    
+    <!-- Left Column: 6-Month Donation History & Logs -->
+    <div>
+      
+      <!-- Stat Counters -->
+      <div class="stat-summary-grid">
+        <div class="dash-stat-box">
+          <div class="dash-stat-val">{{ donations_6mo_count }}</div>
+          <div class="dash-stat-lbl">6-Month Donations</div>
+        </div>
+        <div class="dash-stat-box">
+          <div class="dash-stat-val">{{ units_6mo_count }} <span style="font-size:1rem; color:var(--primary);">Bags</span></div>
+          <div class="dash-stat-lbl">Units Donated (6 Months)</div>
+        </div>
+        <div class="dash-stat-box">
+          <div class="dash-stat-val" style="font-size:1.4rem;">
+            {% if is_eligible %}
+              <span style="color: #34D399;">Eligible Now</span>
+            {% else %}
+              <span style="color: #F59E0B;">In {{ days_until_eligible }} Days</span>
+            {% endif %}
+          </div>
+          <div class="dash-stat-lbl">Next Donation Window</div>
+        </div>
+      </div>
+
+      {% if not is_eligible %}
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.4;">
+          🚨 <strong>Emergency Override Available:</strong> You donated blood on <strong>{{ recent_donation_info.donation_date|date:"b d, Y" }}</strong>. Your next standard regular donation due date is <strong>{{ recent_donation_info.due_date|date:"b d, Y" }}</strong>. If you still wish to donate for an emergency case, you can respond to active blood requests below. The seeker will receive a notification of your due date.
+        </div>
+      {% endif %}
+
+      <!-- History Table Card -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Donation History Record
+          </h2>
+
+          <!-- Filter Tabs: 6 Months vs All Time -->
+          <div class="filter-tabs">
+            <a href="?filter=6months" class="filter-tab-link {% if filter_type == '6months' %}active{% endif %}">Past 6 Months</a>
+            <a href="?filter=all" class="filter-tab-link {% if filter_type == 'all' %}active{% endif %}">All Time ({{ total_donations_count }})</a>
+          </div>
+        </div>
+
+        {% if donations %}
+          <div style="overflow-x: auto;">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Hospital / Medical Center</th>
+                  <th>Recipient / Notes</th>
+                  <th>Units</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for donation in donations %}
+                  <tr>
+                    <td style="font-weight:700; color:#FFFFFF;">{{ donation.donation_date|date:"b d, Y" }}</td>
+                    <td>{{ donation.location_hospital }}</td>
+                    <td>{{ donation.recipient_name|default:"General Emergency" }}</td>
+                    <td>{{ donation.units_donated }} Bag(s)</td>
+                    <td><span class="badge-status badge-completed">{{ donation.get_status_display }}</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity: 0.4; margin-bottom: 0.75rem;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+            </svg>
+            <p style="font-size: 0.95rem; font-weight: 600;">No donation records found for this period.</p>
+            <p style="font-size: 0.8rem; margin-top: 4px;">Log a new donation using the form below!</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Form Card: Log New Donation -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Log New Blood Donation
+          </h2>
+        </div>
+
+        <form method="POST" action="{% url 'add_donation' %}">
+          {% csrf_token %}
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Donation Date</label>
+              {{ donation_form.donation_date }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hospital / Medical Center</label>
+              {{ donation_form.location_hospital }}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Recipient / Patient Name (Optional)</label>
+              {{ donation_form.recipient_name }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Units (Bags)</label>
+              {{ donation_form.units_donated }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            {{ donation_form.notes }}
+          </div>
+
+          <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">
+            <span>Save Donation Record</span>
+          </button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Emergency Requests & Geolocation -->
+    <div>
+
+      <!-- Active Emergency Blood Requests Card -->
+      <div class="dash-card" style="margin-bottom: 1.5rem;">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title" style="color: #F87171;">
+            🚨 Urgent Emergency Blood Requests
+          </h2>
+          <a href="{% url 'find_donors' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Find Donors →</a>
+        </div>
+
+        {% if emergency_requests %}
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for item in emergency_requests %}
+              {% with req=item.object has_resp=item.has_responded %}
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md);">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <div>
+                      <span class="badge-status" style="background: rgba(230,57,70,0.2); color:#F87171; font-size:0.75rem;">
+                        {{ req.blood_group }} Needed
+                      </span>
+                      <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-top: 4px;">
+                        {{ req.patient_name }}
+                      </h3>
+                      <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
+                        🏥 {{ req.hospital_name }} ({{ req.district }})
+                      </div>
+                    </div>
+
+                    {% if has_resp %}
+                      <span class="badge-status badge-completed" style="font-size: 0.75rem;">✓ Volunteered</span>
+                    {% else %}
+                      <form method="POST" action="{% url 'respond_to_request' req.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                          🩸 Volunteer to Donate
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="font-size: 0.825rem; color: var(--text-muted); text-align: center; padding: 1rem 0;">
+            No active emergency blood requests posted at this time.
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            OpenStreetMap Location
+          </h2>
+        </div>
+
+        <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+          Share your current GPS location so blood seekers and emergency hospitals nearby can locate you quickly in urgent situations.
+        </p>
+
+        <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px;" onclick="shareCurrentLocation()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18l-8-8 8-8m0 16l8-8-8-8"/>
+          </svg>
+          <span id="locBtnText">Share / Update My Location</span>
+        </button>
+
+        <!-- OpenStreetMap Container -->
+        <div id="map"></div>
+
+        <div style="margin-top: 1rem; font-size: 0.775rem; color: var(--text-muted);">
+          <div>Lat/Lng Status: <strong id="coordsStatus" style="color: #FFFFFF;">{% if profile.has_shared_location %}{{ profile.latitude }}, {{ profile.longitude }}{% else %}Not Shared Yet{% endif %}</strong></div>
+          <div id="lastUpdateText" style="margin-top: 2px;">Last Updated: {% if profile.last_location_update %}{{ profile.last_location_update|date:"M d, Y g:i A" }}{% else %}Never{% endif %}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // OpenStreetMap Leaflet initialization
+  let initialLat = parseFloat("{{ profile.latitude|default:'23.8103' }}") || 23.8103;
+  let initialLng = parseFloat("{{ profile.longitude|default:'90.4125' }}") || 90.4125;
+  let hasLocation = "{{ profile.has_shared_location|yesno:'true,false' }}" === "true";
+
+  let map = L.map('map').setView([initialLat, initialLng], hasLocation ? 14 : 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  let marker = null;
+  if (hasLocation) {
+    marker = L.marker([initialLat, initialLng]).addTo(map)
+      .bindPopup("<b>{{ user.get_full_name|default:user.username }}</b><br>Your Pinned Location")
+      .openPopup();
+  }
+
+  // Toggle Availability Switch
+  function toggleEmergencyStatus() {
+    fetch("{% url 'toggle_availability' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/json"
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        const btn = document.getElementById("toggleAvailabilityBtn");
+        const txt = document.getElementById("statusText");
+
+        if (data.is_available) {
+          btn.className = "availability-toggle-btn is-available";
+          txt.textContent = "Available for Emergency Alerts";
+        } else {
+          btn.className = "availability-toggle-btn is-unavailable";
+          txt.textContent = "Unavailable for Donating";
+        }
+      }
+    });
+  }
+
+  // Geolocation API Share Location
+  function shareCurrentLocation() {
+    const locBtnText = document.getElementById("locBtnText");
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    locBtnText.textContent = "Locating...";
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      fetch("{% url 'update_location' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng })
+      })
+      .then(res => res.json())
+      .then(data => {
+        locBtnText.textContent = "Share / Update My Location";
+        if (data.status === "success") {
+          document.getElementById("coordsStatus").textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          document.getElementById("lastUpdateText").textContent = `Last Updated: ${data.updated_at}`;
+
+          map.setView([lat, lng], 14);
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+          } else {
+            marker = L.marker([lat, lng]).addTo(map);
+          }
+          marker.bindPopup("<b>{{ user.get_full_name|default:user.username }}</b><br>Updated Location").openPopup();
+          alert("Location updated successfully on OpenStreetMap!");
+        }
+      });
+    }, function(err) {
+      locBtnText.textContent = "Share / Update My Location";
+      alert("Unable to fetch location: " + err.message);
+    });
+  }
+</script>
+{% endblock %}

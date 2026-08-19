@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Seeker Portal Dashboard - LifeFlow BD{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  
+  <!-- Seeker Overview Header -->
+  <div class="dashboard-header-card">
+    <div class="donor-info-group">
+      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);">
+        
+      </div>
+      <div>
+        <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
+        <div class="donor-details-sub">
+          <span>Blood Seeker Portal</span>
+          <span>•</span>
+          <span> {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}</span>
+          <span>•</span>
+          <span> {{ profile.phone_number }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{% url 'find_donors' %}" class="btn-secondary" style="padding: 10px 18px;">
+         Search Nearby Donors
+      </a>
+      <a href="{% url 'post_request' %}" class="btn-primary" style="width: auto; padding: 10px 18px;">
+         Post Emergency Request
+      </a>
+    </div>
+  </div>
+
+  <!-- Dashboard Stats -->
+  <div class="stat-summary-grid" style="grid-template-columns: repeat(4, 1fr);">
+    <div class="dash-stat-box">
+      <div class="dash-stat-val">{{ active_count }}</div>
+      <div class="dash-stat-lbl">Active Blood Requests</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val">{{ fulfilled_count }}</div>
+      <div class="dash-stat-lbl">Fulfilled Requests</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val">{{ total_requests_count }}</div>
+      <div class="dash-stat-lbl">Total Requests Posted</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #34D399;">{{ nearby_donors_count }}</div>
+      <div class="dash-stat-lbl">Available Donors in {{ profile.division }}</div>
+    </div>
+  </div>
+
+  <!-- Action Banners -->
+  <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    
+    <!-- Quick Search Widget Card -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2 class="dash-card-title">
+           Quick Donor Search
+        </h2>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Quickly find verified donors in your area by selecting a blood group:
+      </p>
+
+      <form method="GET" action="{% url 'find_donors' %}">
+        <div class="form-group">
+          <label class="form-label">Blood Group Needed</label>
+          <select name="blood_group" class="form-control form-select">
+            <option value="">All Blood Groups</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+          </select>
+        </div>
+
+        <input type="hidden" name="division" value="{{ profile.division }}">
+
+        <button type="submit" class="btn-primary">
+          <span>Search Available Donors</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Active Requests Summary -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2 class="dash-card-title">
+           Active Requests Summary
+        </h2>
+        <a href="{% url 'my_requests' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">View All →</a>
+      </div>
+
+      {% if my_requests %}
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          {% for req in my_requests %}
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
+                <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
+                   {{ req.hospital_name }} • Status: <strong>{{ req.get_status_display }}</strong>
+                </div>
+              </div>
+              <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">
+                Find Matches
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+          <p style="font-size: 0.9rem;">No active requests right now.</p>
+          <a href="{% url 'post_request' %}" class="btn-secondary" style="display: inline-flex; margin-top: 0.75rem;">
+             Create Request
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
