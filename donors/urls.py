@@ -17,4 +17,7 @@ urlpatterns = [
     path('add-donation/', views.add_donation_view, name='add_donation'),
     path('toggle-availability/', views.toggle_availability_view, name='toggle_availability'),
     path('update-location/', views.update_location_view, name='update_location'),
+    path('donation-history/pdf/', views.print_donation_history_pdf_view, name='print_donation_history_pdf'),
+    path('fulfill-request-stock/<int:request_id>/', views.fulfill_request_with_stock_view, name='fulfill_request_with_stock'),
+    path('approve-user/<int:user_id>/', views.approve_user_view, name='approve_user'),
 ]

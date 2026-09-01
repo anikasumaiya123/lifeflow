@@ -15,9 +15,9 @@
       <div>
         <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
         <div class="donor-details-sub">
-          <span>📍 {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}</span>
+          <span>Location: {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}</span>
           <span>•</span>
-          <span>📞 {{ profile.phone_number }}</span>
+          <span>Phone: {{ profile.phone_number }}</span>
           <span>•</span>
           <span style="color: var(--primary); font-weight: 700;">Blood Group: {{ profile.blood_group }}</span>
         </div>
@@ -65,7 +65,7 @@
 
       {% if not is_eligible %}
         <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1.25rem; line-height: 1.4;">
-          🚨 <strong>Emergency Override Available:</strong> You donated blood on <strong>{{ recent_donation_info.donation_date|date:"b d, Y" }}</strong>. Your next standard regular donation due date is <strong>{{ recent_donation_info.due_date|date:"b d, Y" }}</strong>. If you still wish to donate for an emergency case, you can respond to active blood requests below. The seeker will receive a notification of your due date.
+          <strong>Emergency Override Available:</strong> You donated blood on <strong>{{ recent_donation_info.donation_date|date:"b d, Y" }}</strong>. Your next standard regular donation due date is <strong>{{ recent_donation_info.due_date|date:"b d, Y" }}</strong>. If you still wish to donate for an emergency case, you can respond to active blood requests below. The seeker will receive a notification of your due date.
         </div>
       {% endif %}
 
@@ -80,9 +80,10 @@
           </h2>
 
           <!-- Filter Tabs: 6 Months vs All Time -->
-          <div class="filter-tabs">
+          <div class="filter-tabs" style="display: flex; align-items: center; gap: 8px;">
             <a href="?filter=6months" class="filter-tab-link {% if filter_type == '6months' %}active{% endif %}">Past 6 Months</a>
             <a href="?filter=all" class="filter-tab-link {% if filter_type == 'all' %}active{% endif %}">All Time ({{ total_donations_count }})</a>
+            <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">Print PDF</a>
           </div>
         </div>
 
@@ -177,9 +178,8 @@
       <div class="dash-card" style="margin-bottom: 1.5rem;">
         <div class="dash-card-header">
           <h2 class="dash-card-title" style="color: #F87171;">
-            🚨 Urgent Emergency Blood Requests
+            Urgent Emergency Blood Requests
           </h2>
-          <a href="{% url 'find_donors' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Find Donors →</a>
         </div>
 
         {% if emergency_requests %}
@@ -196,7 +196,7 @@
                         {{ req.patient_name }}
                       </h3>
                       <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
-                        🏥 {{ req.hospital_name }} ({{ req.district }})
+                        Hospital: {{ req.hospital_name }} ({{ req.district }})
                       </div>
                     </div>
 
@@ -205,8 +205,8 @@
                     {% else %}
                       <form method="POST" action="{% url 'respond_to_request' req.id %}">
                         {% csrf_token %}
-                        <button type="submit" class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-                          🩸 Volunteer to Donate
+                        <button type="submit" class="btn-primary" style="padding: 7px 14px; font-size: 0.775rem; font-weight: 600; white-space: nowrap; min-width: 140px; text-align: center; background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none; display: inline-flex; align-items: center; justify-content: center;">
+                          Volunteer to Donate
                         </button>
                       </form>
                     {% endif %}

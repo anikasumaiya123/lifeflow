@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Portal - LifeFlow BD{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <!-- Header Bar -->
+  <div class="dash-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h1 class="dash-card-title" style="font-size: 1.5rem; color: #FFFFFF;">System Administration Portal</h1>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+          Manage user account approvals, monitor system activity, and print reports across Bangladesh.
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'print_donation_history_pdf' %}?report_type=6months&print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(16,185,129,0.2); color: #34D399; border-color: rgba(16,185,129,0.3); text-decoration: none;">
+          Print Past 6 Months Report
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="stat-summary-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #FBBF24;">{{ total_pending }}</div>
+      <div class="dash-stat-lbl">Pending Approvals</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #34D399;">{{ total_approved }}</div>
+      <div class="dash-stat-lbl">Verified Active Users</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val" style="color: #60A5FA;">{{ donations_6mo_count }}</div>
+      <div class="dash-stat-lbl">6-Month System Donations</div>
+    </div>
+  </div>
+
+  <!-- Pending Approvals Section -->
+  {% if pending_users %}
+    <div class="dash-card" style="border-color: rgba(245,158,11,0.4);">
+      <div class="dash-card-header">
+        <h2 class="dash-card-title" style="color: #FBBF24; font-size: 1.1rem;">
+          Pending User Account Approvals ({{ pending_users|length }})
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        {% for p in pending_users %}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ p.user.get_full_name|default:p.user.username }}</strong>
+              <span class="badge-status" style="background: rgba(59,130,246,0.2); color: #60A5FA; margin-left: 6px;">{{ p.get_role_display }}</span>
+              {% if p.blood_group %}<span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; margin-left: 4px;">{{ p.blood_group }}</span>{% endif %}
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">
+                Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location: {{ p.district }}, {{ p.division }}
+              </div>
+            </div>
+            <form method="POST" action="{% url 'approve_user' p.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                Approve User
+              </button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Approved Accounts & Individual Reporting Section -->
+  <div class="dash-card">
+    <div class="dash-card-header" style="flex-wrap: wrap; gap: 10px;">
+      <h2 class="dash-card-title" style="font-size: 1.1rem;">Registered User Directory & Individual Reports</h2>
+      <div style="display: flex; gap: 6px;">
+        <a href="?role=all" class="filter-tab-link {% if role_filter == 'all' %}active{% endif %}">All Users</a>
+        <a href="?role=donor" class="filter-tab-link {% if role_filter == 'donor' %}active{% endif %}">Donors</a>
+        <a href="?role=seeker" class="filter-tab-link {% if role_filter == 'seeker' %}active{% endif %}">Seekers</a>
+        <a href="?role=hospital" class="filter-tab-link {% if role_filter == 'hospital' %}active{% endif %}">Hospitals</a>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      {% for p in approved_users %}
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ p.user.get_full_name|default:p.user.username }}</strong>
+            <span class="badge-status" style="background: rgba(59,130,246,0.2); color: #60A5FA; margin-left: 6px;">{{ p.get_role_display }}</span>
+            {% if p.blood_group %}<span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; margin-left: 4px;">{{ p.blood_group }}</span>{% endif %}
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">
+              Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location: {{ p.district }}, {{ p.division }}
+            </div>
+          </div>
+          <a href="{% url 'print_donation_history_pdf' %}?target_user_id={{ p.id }}&print=1" target="_blank" class="btn-secondary" style="padding: 6px 14px; font-size: 0.8rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
+            Print Report
+          </a>
+        </div>
+      {% empty %}
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No users found for this role filter.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

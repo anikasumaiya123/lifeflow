@@ -25,6 +25,9 @@
     </div>
 
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
+        Print PDF Records
+      </a>
       <a href="{% url 'post_request' %}" class="btn-primary" style="width: auto; padding: 10px 18px;">
          Broadcast Hospital Request
       </a>
@@ -32,14 +35,18 @@
   </div>
 
   <!-- Dashboard Stats -->
-  <div class="stat-summary-grid" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="stat-summary-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="dash-stat-box">
       <div class="dash-stat-val" style="color: #34D399;">{{ total_units_in_stock }} <span style="font-size:1rem; color:var(--text-muted);">Bags</span></div>
       <div class="dash-stat-lbl">Total Blood Stock</div>
     </div>
     <div class="dash-stat-box">
-      <div class="dash-stat-val">{{ active_requests_count }}</div>
-      <div class="dash-stat-lbl">Active Hospital Requests</div>
+      <div class="dash-stat-val" style="color: #F87171;">{{ active_requests_count }}</div>
+      <div class="dash-stat-lbl">Live Emergency Requests</div>
+    </div>
+    <div class="dash-stat-box">
+      <div class="dash-stat-val">{{ my_requests_count }}</div>
+      <div class="dash-stat-lbl">Hospital Broadcasts</div>
     </div>
     <div class="dash-stat-box">
       <div class="dash-stat-val" style="color: #60A5FA;">8</div>
@@ -48,7 +55,7 @@
   </div>
 
   <!-- Inventory Grid -->
-  <div class="dash-card">
+  <div class="dash-card" style="margin-bottom: 1.5rem;">
     <div class="dash-card-header">
       <h2 class="dash-card-title">
          Blood Bank Unit Inventory
@@ -76,10 +83,10 @@
     </div>
   </div>
 
-  <!-- Lower Section: Verify Donor Donation & Hospital Requests -->
+  <!-- Lower Section Grid: Left = Verify Donor, Right = Live Emergency Requests & My Broadcasts -->
   <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
     
-    <!-- Verify Donor Donation Form Card -->
+    <!-- Left Column: Verify Donor Donation Form -->
     <div class="dash-card">
       <div class="dash-card-header">
         <h2 class="dash-card-title">
@@ -120,41 +127,113 @@
       </form>
     </div>
 
-    <!-- Hospital Posted Requests Summary -->
-    <div class="dash-card">
-      <div class="dash-card-header">
-        <h2 class="dash-card-title">
-          Active Hospital Requests
-        </h2>
-        <a href="{% url 'my_requests' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">View All →</a>
+    <!-- Right Column: Live Emergency Blood Requests & Hospital Broadcasts -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+      <!-- Live Emergency Blood Requests across platform -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title" style="color: #F87171;">
+            Urgent Emergency Blood Requests
+          </h2>
+        </div>
+
+        {% if all_active_requests %}
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for item in all_active_requests %}
+              {% with req=item.object stock=item.stock_units has_stock=item.has_stock is_own=item.is_own %}
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md);">
+                  <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <div>
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="badge-status" style="background: rgba(230,57,70,0.2); color:#F87171; font-size:0.75rem;">
+                          {{ req.blood_group }} ({{ req.units_required }} Unit{% if req.units_required > 1 %}s{% endif %})
+                        </span>
+                        {% if has_stock %}
+                          <span class="badge-status" style="background: rgba(16,185,129,0.2); color:#34D399; font-size:0.7rem;">
+                            ✓ Stock Avail. ({{ stock }})
+                          </span>
+                        {% endif %}
+                        {% if is_own %}
+                          <span class="badge-status" style="background: rgba(59,130,246,0.2); color:#60A5FA; font-size:0.7rem;">
+                            My Request
+                          </span>
+                        {% endif %}
+                      </div>
+
+                      <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-top: 6px;">
+                        {{ req.patient_name }}
+                      </h3>
+                      <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
+                        Hospital: {{ req.hospital_name }} • Location: {{ req.district }}, {{ req.division }}
+                      </div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                        Contact: <strong style="color: #FFFFFF;">{{ req.contact_phone }}</strong>
+                      </div>
+                    </div>
+
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                      {% if req.status == 'fulfilled' %}
+                        <span class="badge-status badge-completed" style="font-size: 0.75rem;">✓ Fulfilled</span>
+                      {% elif has_stock and not is_own and req.status == 'active' %}
+                        <form method="POST" action="{% url 'fulfill_request_with_stock' req.id %}">
+                          {% csrf_token %}
+                          <button type="submit" class="btn-primary" style="padding: 7px 14px; font-size: 0.775rem; font-weight: 600; white-space: nowrap; min-width: 140px; text-align: center; background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none; display: inline-flex; align-items: center; justify-content: center;">
+                            Supply Stock
+                          </button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endwith %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <p style="font-size: 0.825rem; color: var(--text-muted); text-align: center; padding: 1rem 0;">
+            No active emergency blood requests posted at this time.
+          </p>
+        {% endif %}
       </div>
 
-      {% if hospital_requests %}
-        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-          {% for req in hospital_requests %}
-            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
-                <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
-                  Units: {{ req.units_required }} • Status: <strong>{{ req.get_status_display }}</strong>
+      <!-- Active Hospital Broadcast Requests Summary -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title">
+            My Hospital Broadcast Requests
+          </h2>
+          <a href="{% url 'my_requests' %}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">View All →</a>
+        </div>
+
+        {% if hospital_requests %}
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for req in hospital_requests %}
+              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
+                  <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
+                    Units: {{ req.units_required }} • Status: <strong>{{ req.get_status_display }}</strong>
+                  </div>
                 </div>
+                <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">
+                  Find Matches
+                </a>
               </div>
-              <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">
-                Find Matches
-              </a>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
-          <p style="font-size: 0.9rem;">No active requests broadcasted by your hospital.</p>
-          <a href="{% url 'post_request' %}" class="btn-secondary" style="display: inline-flex; margin-top: 0.75rem;">
-             Post Request
-          </a>
-        </div>
-      {% endif %}
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted);">
+            <p style="font-size: 0.9rem;">No active requests broadcasted by your hospital.</p>
+            <a href="{% url 'post_request' %}" class="btn-secondary" style="display: inline-flex; margin-top: 0.75rem;">
+               Post Hospital Request
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
     </div>
 
   </div>
 </div>
+
 {% endblock %}

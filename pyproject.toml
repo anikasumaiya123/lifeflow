@@ -1,0 +1,17 @@
+[tool.pyrefly]
+ignore_errors_in_generated_code = true
+
+[tool.pyrefly.errors]
+"untyped-import" = "ignore"
+"missing-attribute" = "ignore"
+"missing-module-attribute" = "ignore"
+"bad-override" = "ignore"
+"implicit-override" = "ignore"
+
+[tool.pyright]
+typeCheckingMode = "off"
+reportMissingImports = false
+reportMissingTypeStubs = false
+reportAttributeAccessIssue = false
+reportGeneralTypeIssues = false
+reportOptionalMemberAccess = false

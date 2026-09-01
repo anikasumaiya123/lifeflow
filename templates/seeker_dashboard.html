@@ -25,6 +25,9 @@
     </div>
 
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
+        Print PDF Statement
+      </a>
       <a href="{% url 'find_donors' %}" class="btn-secondary" style="padding: 10px 18px;">
          Search Nearby Donors
       </a>

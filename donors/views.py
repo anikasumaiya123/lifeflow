@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
 
-from .models import UserProfile, DonationHistory, BloodRequest, BloodRequestResponse, HospitalInventory, haversine_distance, get_user_full_name, BLOOD_GROUP_CHOICES
+from .models import UserProfile, DonationHistory, BloodRequest, BloodRequestResponse, HospitalInventory, haversine_distance, get_user_full_name, BLOOD_GROUP_CHOICES, is_blood_compatible, get_compatible_donor_groups
 from .forms import UserRegistrationForm, UserLoginForm, DonationHistoryForm, BloodRequestForm
 
 def register_view(request):
@@ -24,30 +24,33 @@ def register_view(request):
         role = request.POST.get('role', 'donor')
         division = request.POST.get('division', '')
         district = request.POST.get('district', '')
-        blood_group = request.POST.get('blood_group', 'O+')
+        if role != 'donor':
+            blood_group = ''
+        else:
+            blood_group = request.POST.get('blood_group', 'O+').strip()
         emergency_available = request.POST.get('emergency_available') == 'true' or request.POST.get('emergency_available') == 'on'
 
-        if not full_name or not phone_number or not password:
-            messages.error(request, "Please fill in all required fields (Full Name, Phone Number, and Password).")
+        if not full_name or not email or not password:
+            messages.error(request, "Please fill in all required fields (Full Name, Email Address, and Password).")
             return render(request, 'register.html')
 
         if password != confirm_password:
             messages.error(request, "Passwords do not match. Please try again.")
             return render(request, 'register.html')
 
-        username = phone_number
+        username = email.lower()
 
-        if User.objects.filter(username=username).exists() or UserProfile.objects.filter(phone_number=phone_number).exists():
-            messages.error(request, "An account with this phone number already exists.")
+        if User.objects.filter(username__iexact=username).exists() or User.objects.filter(email__iexact=email).exists():
+            messages.error(request, "An account with this email address already exists.")
             return render(request, 'register.html')
 
-        if email and User.objects.filter(email=email).exists():
-            messages.error(request, "An account with this email address already exists.")
+        if phone_number and UserProfile.objects.filter(phone_number=phone_number).exists():
+            messages.error(request, "An account with this phone number already exists.")
             return render(request, 'register.html')
 
         user = User.objects.create_user(
             username=username,
-            email=email,
+            email=email.lower(),
             password=password,
             first_name=full_name.split(' ')[0] if full_name else '',
             last_name=' '.join(full_name.split(' ')[1:]) if full_name and ' ' in full_name else ''
@@ -116,6 +119,9 @@ def logout_view(request):
 @login_required
 def dashboard_view(request):
     user = request.user
+    if user.is_superuser:
+        return admin_dashboard_view(request)
+
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
     if profile.role == 'seeker':
@@ -153,7 +159,8 @@ def dashboard_view(request):
     for req in active_requests_qs:
         emergency_requests.append({
             'object': req,
-            'has_responded': req.id in user_responses
+            'has_responded': req.id in user_responses,
+            'is_compatible': is_blood_compatible(profile.blood_group, req.blood_group)
         })
 
     context = {
@@ -203,21 +210,41 @@ def hospital_dashboard_view(request):
     user = request.user
     profile, _ = UserProfile.objects.get_or_create(user=user)
 
-    # Initialize 8 blood groups in inventory if not present
-    for bg_code, _ in BLOOD_GROUP_CHOICES:
+    valid_bg_codes = [bg[0] for bg in BLOOD_GROUP_CHOICES]
+
+    # Initialize standard blood groups in inventory if not present
+    for bg_code in valid_bg_codes:
         HospitalInventory.objects.get_or_create(hospital=user, blood_group=bg_code)
 
-    inventory_qs = HospitalInventory.objects.filter(hospital=user).order_by('blood_group')
+    inventory_qs = HospitalInventory.objects.filter(hospital=user, blood_group__in=valid_bg_codes).order_by('blood_group')
+    inventory_stock_dict = {inv.blood_group: inv.units for inv in inventory_qs}
 
     total_units_in_stock = sum(inv.units for inv in inventory_qs)
-    hospital_requests = BloodRequest.objects.filter(seeker=user)
+    
+    # Requests posted by this hospital
+    my_hospital_requests = BloodRequest.objects.filter(seeker=user)
+    
+    # All active emergency blood requests across the system
+    all_active_requests_qs = BloodRequest.objects.filter(status='active').order_by('-created_at')[:10]
+    
+    all_active_requests = []
+    for req in all_active_requests_qs:
+        stock_count = inventory_stock_dict.get(req.blood_group, 0)
+        all_active_requests.append({
+            'object': req,
+            'stock_units': stock_count,
+            'has_stock': stock_count >= req.units_required,
+            'is_own': req.seeker == user
+        })
 
     context = {
         'profile': profile,
         'inventory': inventory_qs,
         'total_units_in_stock': total_units_in_stock,
-        'hospital_requests': hospital_requests[:5],
-        'active_requests_count': hospital_requests.filter(status='active').count(),
+        'hospital_requests': my_hospital_requests[:5],
+        'my_requests_count': my_hospital_requests.filter(status='active').count(),
+        'all_active_requests': all_active_requests,
+        'active_requests_count': BloodRequest.objects.filter(status='active').count(),
     }
     return render(request, 'hospital_dashboard.html', context)
 
@@ -263,12 +290,44 @@ def hospital_verify_donation_view(request):
                 status='completed',
                 notes=notes or "Verified by Hospital"
             )
-            # Optionally update hospital stock
+            # Update hospital stock inventory upon donation verification
             inv, _ = HospitalInventory.objects.get_or_create(hospital=request.user, blood_group=donor_profile.blood_group)
             inv.units += units
             inv.save()
 
-            messages.success(request, f"Successfully verified donation of {units} unit(s) from {get_user_full_name(donor_profile.user)} ({donor_profile.blood_group})!")
+            messages.success(request, f"Successfully verified donation of {units} unit(s) from {get_user_full_name(donor_profile.user)} ({donor_profile.blood_group})! Stock inventory updated (+{units}).")
+
+    return redirect('dashboard')
+
+@login_required
+def fulfill_request_with_stock_view(request, request_id):
+    """Allows hospital to fulfill an active emergency blood request using its inventory stock."""
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'hospital':
+        messages.error(request, "Only registered hospitals can supply blood stock for emergency requests.")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        req = get_object_or_404(BloodRequest, id=request_id, status='active')
+        inv, _ = HospitalInventory.objects.get_or_create(hospital=request.user, blood_group=req.blood_group)
+
+        if inv.units < req.units_required:
+            messages.error(request, f"Insufficient {req.blood_group} stock! You have {inv.units} unit(s), but request requires {req.units_required} unit(s).")
+        else:
+            inv.units -= req.units_required
+            inv.save()
+            req.status = 'fulfilled'
+            req.save()
+
+            hospital_name = get_user_full_name(request.user)
+            BloodRequestResponse.objects.create(
+                request=req,
+                donor=request.user,
+                donor_message=f"{hospital_name} is supplying {req.units_required} bag(s) of {req.blood_group} blood stock from their inventory for your request.",
+                has_recent_donation=False
+            )
+
+            messages.success(request, f"Supplied {req.units_required} bag(s) of {req.blood_group} stock for {req.patient_name}! Request marked as Fulfilled.")
 
     return redirect('dashboard')
 
@@ -383,8 +442,15 @@ def find_donors_view(request):
     else:
         donors_list.sort(key=lambda x: not x['is_available'])
 
+    hospital_stock_qs = HospitalInventory.objects.filter(units__gt=0).select_related('hospital', 'hospital__profile')
+    if blood_group:
+        hospital_stock_qs = hospital_stock_qs.filter(blood_group=blood_group)
+    if division:
+        hospital_stock_qs = hospital_stock_qs.filter(hospital__profile__division=division)
+
     context = {
         'donors': donors_list,
+        'matched_hospital_stocks': hospital_stock_qs,
         'map_markers_json': json.dumps(map_markers),
         'blood_group': blood_group,
         'division': division,
@@ -418,7 +484,11 @@ def post_request_view(request):
             'district': profile.district if profile else '',
         })
 
-    return render(request, 'post_request.html', {'form': form})
+    hospital_stocks = HospitalInventory.objects.filter(units__gt=0).select_related('hospital').order_by('blood_group')
+    return render(request, 'post_request.html', {
+        'form': form,
+        'hospital_stocks': hospital_stocks
+    })
 
 @login_required
 def my_requests_view(request):
@@ -426,18 +496,27 @@ def my_requests_view(request):
     active_requests = []
     for req in requests_qs:
         responses_qs = req.responses.all().select_related('donor', 'donor__profile')
-        matched_donors = UserProfile.objects.filter(
-            role='donor',
-            is_approved=True,
-            emergency_available=True,
-            blood_group=req.blood_group,
-            division=req.division
-        )[:5]
+        if req.status == 'active':
+            matched_donors = UserProfile.objects.filter(
+                role='donor',
+                is_approved=True,
+                emergency_available=True,
+                blood_group=req.blood_group,
+                division=req.division
+            )[:5]
+            h_stocks = HospitalInventory.objects.filter(
+                blood_group=req.blood_group,
+                units__gt=0
+            ).select_related('hospital')
+        else:
+            matched_donors = UserProfile.objects.none()
+            h_stocks = HospitalInventory.objects.none()
 
         active_requests.append({
             'object': req,
             'responses': responses_qs,
-            'matched_donors': matched_donors
+            'matched_donors': matched_donors,
+            'hospital_stocks': h_stocks
         })
 
     context = {
@@ -453,6 +532,10 @@ def respond_to_request_view(request, request_id):
 
     if profile and profile.role != 'donor':
         messages.error(request, "Only registered blood donors can respond to emergency blood requests.")
+        return redirect('dashboard')
+
+    if profile and not is_blood_compatible(profile.blood_group, req.blood_group):
+        messages.error(request, f"Your blood group ({profile.blood_group}) is not compatible with the patient's requested blood group ({req.blood_group}).")
         return redirect('dashboard')
 
     if request.method == 'POST':
@@ -558,3 +641,83 @@ def update_location_view(request):
         return JsonResponse({'status': 'error', 'message': 'Invalid latitude or longitude.'}, status=400)
 
     return JsonResponse({'status': 'error', 'message': 'POST method required.'}, status=405)
+
+@login_required
+def admin_dashboard_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Access restricted to administrators.")
+        return redirect('dashboard')
+
+    pending_users = UserProfile.objects.filter(is_approved=False).select_related('user')
+    approved_users = UserProfile.objects.filter(is_approved=True).select_related('user')
+    
+    role_filter = request.GET.get('role', 'all')
+    if role_filter != 'all':
+        approved_users = approved_users.filter(role=role_filter)
+
+    six_months_ago = timezone.now().date() - timedelta(days=180)
+    donations_6mo_count = DonationHistory.objects.filter(donation_date__gte=six_months_ago, status='completed').count()
+
+    context = {
+        'pending_users': pending_users,
+        'approved_users': approved_users,
+        'role_filter': role_filter,
+        'total_pending': pending_users.count(),
+        'total_approved': approved_users.count(),
+        'donations_6mo_count': donations_6mo_count,
+    }
+    return render(request, 'admin_dashboard.html', context)
+
+@login_required
+def approve_user_view(request, user_id):
+    if not request.user.is_superuser:
+        messages.error(request, "Access restricted to administrators.")
+        return redirect('dashboard')
+
+    profile = get_object_or_404(UserProfile, id=user_id)
+    profile.is_approved = True
+    profile.save()
+    messages.success(request, f"Approved account for {get_user_full_name(profile.user)} ({profile.get_role_display()})!")
+    return redirect('dashboard')
+
+@login_required
+def print_donation_history_pdf_view(request):
+    """Generates printable PDF reports for donors, seekers, hospitals, or admin 6-month reports."""
+    user = request.user
+    target_user_id = request.GET.get('target_user_id')
+    report_type = request.GET.get('report_type')
+
+    if user.is_superuser and target_user_id:
+        target_profile = get_object_or_404(UserProfile, id=target_user_id)
+        user = target_profile.user
+        profile = target_profile
+    else:
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+
+    six_months_ago = timezone.now().date() - timedelta(days=180)
+
+    if request.user.is_superuser and report_type == '6months':
+        donations = DonationHistory.objects.filter(donation_date__gte=six_months_ago).order_by('-donation_date')
+        requests = BloodRequest.objects.filter(created_at__gte=six_months_ago).order_by('-created_at')
+        is_6mo_report = True
+    else:
+        donations = DonationHistory.objects.filter(donor=user).order_by('-donation_date')
+        requests = BloodRequest.objects.filter(seeker=user).order_by('-created_at')
+        is_6mo_report = False
+
+    hospital_verified = []
+    if profile.role == 'hospital' and not is_6mo_report:
+        hospital_name = get_user_full_name(user)
+        hospital_verified = DonationHistory.objects.filter(location_hospital__icontains=hospital_name).order_by('-donation_date')
+
+    context = {
+        'user': user,
+        'profile': profile,
+        'donations': donations,
+        'requests': requests,
+        'hospital_verified': hospital_verified,
+        'is_6mo_report': is_6mo_report,
+        'generated_at': timezone.now(),
+    }
+    return render(request, 'donation_history_pdf.html', context)
+

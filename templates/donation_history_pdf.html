@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation History Statement - {{ user.get_full_name|default:user.username }}</title>
+  <style>
+    :root {
+      --primary: #E63946;
+      --dark: #0F172A;
+      --border: #E2E8F0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #F8FAFC;
+      color: #1E293B;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    .pdf-container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      border: 1px solid var(--border);
+    }
+    .no-print-bar {
+      max-width: 850px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-print { background: #E63946; color: #FFFFFF; }
+    .btn-back { background: #E2E8F0; color: #334155; }
+    
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .brand { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
+    .brand span { color: var(--dark); }
+    .title { font-size: 1.1rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .user-card {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      background: #F1F5F9;
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .user-card div strong { display: block; font-size: 0.75rem; color: #64748B; text-transform: uppercase; }
+
+    h2 { font-size: 1.1rem; color: var(--dark); margin-bottom: 0.75rem; border-left: 4px solid var(--primary); padding-left: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      font-size: 0.875rem;
+    }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #F8FAFC; font-weight: 700; color: #334155; }
+    tr:nth-child(even) td { background: #FAFAFA; }
+
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.775rem;
+      color: #94A3B8;
+    }
+
+    @media print {
+      body { background: #FFFFFF; padding: 0; }
+      .no-print-bar { display: none !important; }
+      .pdf-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="no-print-bar">
+    <a href="{% url 'dashboard' %}" class="btn-action btn-back">← Return to Dashboard</a>
+    <button onclick="window.print()" class="btn-action btn-print">Print / Save as PDF</button>
+  </div>
+
+  <div class="pdf-container">
+    <div class="header">
+      <div>
+        <div class="brand">Life<span>Flow</span> BD</div>
+        <div style="font-size:0.8rem; color:#64748B;">Emergency Blood Donor Finder & Network</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="title">Official Statement</div>
+        <div style="font-size:0.8rem; color:#64748B;">Date: {{ generated_at|date:"F d, Y" }}</div>
+      </div>
+    </div>
+
+    <!-- User Information Header -->
+    <div class="user-card">
+      <div>
+        <strong>Name</strong>
+        {{ user.get_full_name|default:user.username }}
+      </div>
+      <div>
+        <strong>Role</strong>
+        {{ profile.get_role_display }}
+      </div>
+      <div>
+        <strong>Blood Group</strong>
+        <span style="color:var(--primary); font-weight:800;">{{ profile.blood_group|default:"N/A" }}</span>
+      </div>
+      <div>
+        <strong>Phone Number</strong>
+        {{ profile.phone_number|default:"N/A" }}
+      </div>
+      <div>
+        <strong>Location</strong>
+        {{ profile.district|default:"Bangladesh" }}, {{ profile.division }}
+      </div>
+      <div>
+        <strong>Emergency Status</strong>
+        {% if profile.emergency_available %}Available{% else %}Unavailable{% endif %}
+      </div>
+    </div>
+
+    {% if is_6mo_report %}
+      <!-- Admin 6-Month System Report -->
+      <h2>System Past 6 Months Blood Donation & Request Report</h2>
+      {% if donations %}
+        <h3 style="font-size: 1rem; color: var(--dark); margin-top: 1.25rem; margin-bottom: 0.5rem;">Completed Blood Donations (Past 6 Months)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Donor Name</th>
+              <th>Hospital / Location</th>
+              <th>Recipient / Notes</th>
+              <th>Units</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for don in donations %}
+              <tr>
+                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td>{{ don.donor.get_full_name|default:don.donor.username }}</td>
+                <td>{{ don.location_hospital }}</td>
+                <td>{{ don.recipient_name|default:"General Emergency" }}</td>
+                <td>{{ don.units_donated }} Bag(s)</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+      {% if requests %}
+        <h3 style="font-size: 1rem; color: var(--dark); margin-top: 1.5rem; margin-bottom: 0.5rem;">Emergency Blood Requests (Past 6 Months)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Patient Name</th>
+              <th>Blood Group</th>
+              <th>Units Required</th>
+              <th>Hospital</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in requests %}
+              <tr>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td><strong>{{ req.patient_name }}</strong></td>
+                <td><span style="color:var(--primary); font-weight:700;">{{ req.blood_group }}</span></td>
+                <td>{{ req.units_required }} Bag(s)</td>
+                <td>{{ req.hospital_name }} ({{ req.district }})</td>
+                <td>{{ req.get_status_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+    {% elif profile.role == 'seeker' %}
+      <!-- Seeker Specific PDF Report: Blood Donations & Fulfillments Against Requests -->
+      <h2>Blood Request & Fulfillment Statement</h2>
+      {% if requests %}
+        <table>
+          <thead>
+            <tr>
+              <th>Patient & Request Info</th>
+              <th>Status</th>
+              <th>Donor & Hospital Blood Fulfillments</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in requests %}
+              <tr>
+                <td style="vertical-align: top; width: 35%;">
+                  <strong>{{ req.patient_name }}</strong><br>
+                  Group: <span style="color:var(--primary); font-weight:800;">{{ req.blood_group }}</span> ({{ req.units_required }} Bag{% if req.units_required > 1 %}s{% endif %})<br>
+                  Hospital: {{ req.hospital_name }}<br>
+                  Location: {{ req.district }}, {{ req.division }}<br>
+                  <small style="color:#64748B;">Date: {{ req.created_at|date:"M d, Y" }}</small>
+                </td>
+                <td style="vertical-align: top; width: 15%;">
+                  {% if req.status == 'fulfilled' %}
+                    <span style="color:#059669; font-weight:700;">✓ Fulfilled</span>
+                  {% elif req.status == 'active' %}
+                    <span style="color:#2563EB; font-weight:700;">Active</span>
+                  {% else %}
+                    <span style="color:#DC2626; font-weight:700;">Cancelled</span>
+                  {% endif %}
+                </td>
+                <td style="vertical-align: top;">
+                  {% if req.responses.all %}
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      {% for resp in req.responses.all %}
+                        {% if resp.is_hospital %}
+                          <div style="background:#F1F5F9; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; border-left: 3px solid #10B981;">
+                            <strong>Hospital Stock Supply: {{ resp.donor.get_full_name|default:resp.donor.username }}</strong>
+                            {% if resp.donor_phone %}({{ resp.donor_phone }}){% endif %}<br>
+                            <span style="color:#334155;">"{{ resp.donor_message|default:"Supplied blood stock for request" }}"</span><br>
+                            <small style="color:#64748B;">Recorded: {{ resp.created_at|date:"M d, Y g:i A" }}</small>
+                          </div>
+                        {% else %}
+                          <div style="background:#F1F5F9; padding: 6px 10px; border-radius: 6px; font-size: 0.85rem; border-left: 3px solid #3B82F6;">
+                            <strong>Donor Volunteer: {{ resp.donor.get_full_name|default:resp.donor.username }}</strong>
+                            {% if resp.donor_phone %}({{ resp.donor_phone }}){% endif %}<br>
+                            <span style="color:#334155;">"{{ resp.donor_message|default:"Volunteered for emergency blood request" }}"</span><br>
+                            <small style="color:#64748B;">Recorded: {{ resp.created_at|date:"M d, Y g:i A" }}</small>
+                          </div>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <span style="color:#94A3B8; font-style:italic; font-size:0.85rem;">No responses recorded yet</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div style="text-align: center; padding: 2.5rem; color: #94A3B8; font-weight: 600;">No emergency blood requests posted yet.</div>
+      {% endif %}
+    {% else %}
+      <!-- Section 1: Donation History -->
+      {% if donations or hospital_verified %}
+        <h2>Blood Donation Records</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Hospital / Location</th>
+              <th>Recipient / Notes</th>
+              <th>Units Donated</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for don in donations %}
+              <tr>
+                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td>{{ don.location_hospital }}</td>
+                <td>{{ don.recipient_name|default:"General Emergency" }}</td>
+                <td>{{ don.units_donated }} Bag(s)</td>
+                <td><span style="color:#059669; font-weight:700;">{{ don.get_status_display }}</span></td>
+              </tr>
+            {% endfor %}
+            {% for don in hospital_verified %}
+              <tr>
+                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td>{{ don.location_hospital }} (Verified at Hospital)</td>
+                <td>Donor: {{ don.donor.get_full_name|default:don.donor.username }}</td>
+                <td>{{ don.units_donated }} Bag(s)</td>
+                <td><span style="color:#059669; font-weight:700;">Verified</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+      <!-- Section 2: Blood Requests Record -->
+      {% if requests %}
+        <h2>Emergency Blood Request Records</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Created Date</th>
+              <th>Patient Name</th>
+              <th>Blood Group</th>
+              <th>Units Required</th>
+              <th>Hospital / Medical Center</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in requests %}
+              <tr>
+                <td>{{ req.created_at|date:"M d, Y" }}</td>
+                <td><strong>{{ req.patient_name }}</strong></td>
+                <td><span style="color:var(--primary); font-weight:700;">{{ req.blood_group }}</span></td>
+                <td>{{ req.units_required }} Bag(s)</td>
+                <td>{{ req.hospital_name }} ({{ req.district }})</td>
+                <td>{{ req.get_status_display }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+      {% if not donations and not hospital_verified and not requests %}
+        <div style="text-align: center; padding: 3rem 1rem; color: #94A3B8;">
+          <p style="font-weight: 600;">No donation or request records found for this account.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="footer">
+      <div>Generated automatically via LifeFlow BD Platform</div>
+      <div>Official Digital Record</div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('print') === '1') {
+      window.onload = function() { window.print(); };
+    }
+  </script>
+</body>
+</html>

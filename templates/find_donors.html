@@ -102,6 +102,36 @@
 
     <!-- Donor Cards List -->
     <div>
+      {% if matched_hospital_stocks %}
+        <div class="dash-card" style="margin-bottom: 1rem; padding: 1rem 1.25rem;">
+          <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; display: flex; align-items: center; gap: 6px;">
+              <span>Hospital Blood Bank Stock Available {% if blood_group %}({{ blood_group }}){% endif %}</span>
+            </h3>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            {% for hstock in matched_hospital_stocks %}
+              <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                <div>
+                  <strong style="color: #FFFFFF; font-size: 0.875rem;">{{ hstock.hospital.get_full_name|default:hstock.hospital.username }}</strong>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                    {{ hstock.hospital.profile.district|default:"Bangladesh" }}, {{ hstock.hospital.profile.division }} • Contact: {{ hstock.hospital.profile.phone_number }}
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="badge-status" style="background: rgba(16, 185, 129, 0.25); color: #34D399; font-weight: 700; font-size: 0.8rem;">
+                    {{ hstock.blood_group }}: {{ hstock.units }} Bag{% if hstock.units > 1 %}s{% endif %}
+                  </span>
+                  <a href="tel:{{ hstock.hospital.profile.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF; text-decoration: none;">
+                    Call
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
       {% if donors %}
         <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
           {% for d in donors %}
@@ -114,11 +144,11 @@
                   <div>
                     <h3 style="font-size: 1.15rem; font-weight: 700; color: #FFFFFF;">{{ d.name }}</h3>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
-                      📍 {{ d.district }}, {{ d.division }}
+                      Location: {{ d.district }}, {{ d.division }}
                     </p>
                     <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
                       {% if d.distance_km is not None %}
-                        <span class="badge-status" style="background: rgba(59, 130, 246, 0.2); color: #93C5FD;">📏 {{ d.distance_km }} km away</span>
+                        <span class="badge-status" style="background: rgba(59, 130, 246, 0.2); color: #93C5FD;">Distance: {{ d.distance_km }} km away</span>
                       {% endif %}
                       {% if d.is_available %}
                         <span class="badge-status badge-completed">Available Now</span>
@@ -126,7 +156,7 @@
                         <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #F87171;">Unavailable</span>
                       {% endif %}
                       {% if d.recent_info.recently_donated %}
-                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24;">⚠️ Donated Recently</span>
+                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24;">Donated Recently</span>
                       {% endif %}
                     </div>
                   </div>
@@ -134,14 +164,14 @@
 
                 <div>
                   <a href="tel:{{ d.phone }}" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; width: auto;">
-                    📞 Call {{ d.phone }}
+                    Call {{ d.phone }}
                   </a>
                 </div>
               </div>
 
               {% if d.recent_info.recently_donated %}
                 <div style="margin-top: 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; line-height: 1.4;">
-                  ⚠️ <strong>Emergency Notice:</strong> Donor already donated blood on <strong>{{ d.recent_info.donation_date }}</strong> (Next regular due date: <strong>{{ d.recent_info.due_date }}</strong>). They remain available for emergency requests.
+                  <strong>Emergency Notice:</strong> Donor already donated blood on <strong>{{ d.recent_info.donation_date }}</strong> (Next regular due date: <strong>{{ d.recent_info.due_date }}</strong>). They remain available for emergency requests.
                 </div>
               {% endif %}
             </div>
@@ -149,9 +179,6 @@
         </div>
       {% else %}
         <div class="dash-card" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
-          <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity: 0.4; margin-bottom: 0.75rem;">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
           <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF;">No Donors Match Your Search Criteria</h3>
           <p style="font-size: 0.85rem; margin-top: 6px;">Try expanding your distance radius or changing blood group/division filters.</p>
         </div>
@@ -196,13 +223,13 @@
     mapMarkersData.forEach(m => {
       let markerColor = m.available ? "#10B981" : "#EF4444";
       let marker = L.marker([m.lat, m.lng]).addTo(map);
-      let recentNotice = m.recently_donated ? `<div style="font-size:0.75rem; color:#D97706; margin-top:4px; font-weight:600; background:#FEF3C7; padding:4px 6px; border-radius:4px;">⚠️ Donated on ${m.recent_donation_date}<br>(Next regular due date: ${m.next_due_date})</div>` : '';
+      let recentNotice = m.recently_donated ? `<div style="font-size:0.75rem; color:#D97706; margin-top:4px; font-weight:600; background:#FEF3C7; padding:4px 6px; border-radius:4px;">Donated on ${m.recent_donation_date}<br>(Next regular due date: ${m.next_due_date})</div>` : '';
       marker.bindPopup(`
         <div style="font-family: sans-serif; color: #0F172A;">
           <strong style="font-size: 1rem; color: #E63946;">${m.blood_group} - ${m.name}</strong><br>
-          📍 ${m.location}<br>
-          📞 <a href="tel:${m.phone}">${m.phone}</a><br>
-          📏 Distance: ${m.distance}<br>
+          Location: ${m.location}<br>
+          Phone: <a href="tel:${m.phone}">${m.phone}</a><br>
+          Distance: ${m.distance}<br>
           Status: <b style="color:${markerColor}">${m.available ? 'Available' : 'Unavailable'}</b>
           ${recentNotice}
         </div>

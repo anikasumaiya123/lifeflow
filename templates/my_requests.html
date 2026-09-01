@@ -22,7 +22,7 @@
   {% if requests_with_donors %}
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
       {% for item in requests_with_donors %}
-        {% with req=item.object responses=item.responses matched_donors=item.matched_donors %}
+        {% with req=item.object responses=item.responses matched_donors=item.matched_donors hospital_stocks=item.hospital_stocks %}
           <div class="dash-card">
             <div class="dash-card-header">
               <div>
@@ -68,22 +68,36 @@
             {% if responses %}
               <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
                 <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
-                  <span>🩸 Donor Volunteer Responses ({{ responses|length }})</span>
+                  <span>Donor Volunteer Responses ({{ responses|length }})</span>
                 </h3>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   {% for resp in responses %}
                     <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 14px; border-radius: var(--radius-md);">
                       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <div>
-                          <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ resp.donor.get_full_name|default:resp.donor.username }}</strong>
-                          <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">({{ resp.donor.profile.blood_group }})</span>
+                          <strong style="color: #FFFFFF; font-size: 0.95rem;">
+                            {% if resp.is_hospital %}Hospital Supply Notice: {% endif %}{{ resp.donor.get_full_name|default:resp.donor.username }}
+                          </strong>
+                          {% if resp.is_hospital %}
+                            <div style="font-size: 0.8rem; color: #34D399; margin-top: 2px; font-weight: 700;">
+                              Hospital is supplying blood stock for your request!
+                            </div>
+                          {% else %}
+                            <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">({{ resp.donor.profile.blood_group }})</span>
+                          {% endif %}
                           <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
-                            📍 {{ resp.donor.profile.district }}, {{ resp.donor.profile.division }} • Offered: {{ resp.created_at|date:"M d, Y g:i A" }}
+                            Location: {{ resp.donor.profile.district }}, {{ resp.donor.profile.division }} • Date: {{ resp.created_at|date:"M d, Y g:i A" }}
                           </div>
                         </div>
-                        <a href="tel:{{ resp.donor.profile.phone_number }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto;">
-                          📞 Contact {{ resp.donor.profile.phone_number }}
-                        </a>
+                        {% if resp.is_hospital %}
+                          <a href="tel:{{ resp.donor_phone }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
+                            Call {{ resp.donor_phone }}
+                          </a>
+                        {% else %}
+                          <a href="tel:{{ resp.donor_phone }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto;">
+                            Call {{ resp.donor_phone }}
+                          </a>
+                        {% endif %}
                       </div>
 
                       {% if resp.donor_message %}
@@ -103,45 +117,79 @@
               </div>
             {% endif %}
 
-            <!-- Matched Donors Section -->
-            <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
-              <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-                <span> Matched Available Donors Nearby</span>
-                <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">
-                  View All Matching Donors →
-                </a>
-              </h3>
+            {% if req.status == 'active' %}
+              <!-- Matched Donors Section -->
+              <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                  <span> Matched Available Donors Nearby</span>
+                  <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">
+                    View All Matching Donors →
+                  </a>
+                </h3>
 
-              {% if matched_donors %}
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
-                  {% for donor in matched_donors %}
-                    <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-md);">
-                      <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div>
-                          <strong style="color: #FFFFFF; font-size: 0.9rem;">{{ donor.user.get_full_name|default:donor.user.username }}</strong>
-                          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                             {{ donor.district }}, {{ donor.division }}
+                {% if matched_donors %}
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
+                    {% for donor in matched_donors %}
+                      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                          <div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                              <strong style="color: #FFFFFF; font-size: 0.9rem;">{{ donor.user.get_full_name|default:donor.user.username }}</strong>
+                              <span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; font-size: 0.75rem; padding: 2px 8px; font-weight: 700;">
+                                {{ donor.blood_group }}
+                              </span>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                               {{ donor.district }}, {{ donor.division }}
+                            </div>
                           </div>
+                          <a href="tel:{{ donor.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF;">
+                             Call
+                          </a>
                         </div>
-                        <a href="tel:{{ donor.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF;">
-                           Call
-                        </a>
-                      </div>
 
-                      {% if donor.is_recently_donated %}
-                        <div style="margin-top: 6px; font-size: 0.75rem; color: #FBBF24; background: rgba(245,158,11,0.12); padding: 4px 8px; border-radius: 4px;">
-                          ⚠️ Donated on <strong>{{ donor.recent_donation_info.donation_date|date:"b d, Y" }}</strong> (Next due: {{ donor.recent_donation_info.due_date|date:"b d, Y" }})
+                        {% if donor.is_recently_donated %}
+                          <div style="margin-top: 6px; font-size: 0.75rem; color: #FBBF24; background: rgba(245,158,11,0.12); padding: 4px 8px; border-radius: 4px;">
+                            ⚠️ Donated on <strong>{{ donor.recent_donation_info.donation_date|date:"b d, Y" }}</strong> (Next due: {{ donor.recent_donation_info.due_date|date:"b d, Y" }})
+                          </div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p style="font-size: 0.8rem; color: var(--text-muted);">
+                    No direct donor matches available in {{ req.division }} right now. Try searching across adjacent divisions!
+                  </p>
+                {% endif %}
+              </div>
+
+              <!-- Hospital Stock Available for this Request -->
+              {% if hospital_stocks %}
+                <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
+                  <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                    <span>Hospital Blood Bank Stock Available ({{ req.blood_group }})</span>
+                  </h3>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    {% for hstock in hospital_stocks %}
+                      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                        <div>
+                          <strong style="color: #FFFFFF; font-size: 0.9rem;">{{ hstock.hospital.get_full_name|default:hstock.hospital.username }}</strong>
+                          <span style="font-size: 0.775rem; color: var(--text-muted); margin-left: 6px;">({{ hstock.hospital.profile.phone_number }})</span>
                         </div>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span class="badge-status" style="background: rgba(16, 185, 129, 0.25); color: #34D399; font-weight: 700; font-size: 0.8rem;">
+                            {{ hstock.units }} Bag{% if hstock.units > 1 %}s{% endif %} in Stock
+                          </span>
+                          <a href="tel:{{ hstock.hospital.profile.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF; text-decoration: none;">
+                            Call
+                          </a>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
                 </div>
-              {% else %}
-                <p style="font-size: 0.8rem; color: var(--text-muted);">
-                  No direct donor matches available in {{ req.division }} right now. Try searching across adjacent divisions!
-                </p>
               {% endif %}
-            </div>
+            {% endif %}
 
           </div>
         {% endwith %}

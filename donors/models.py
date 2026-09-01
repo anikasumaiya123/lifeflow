@@ -21,6 +21,34 @@ BLOOD_GROUP_CHOICES = [
     ('AB-', 'AB-'),
 ]
 
+BLOOD_COMPATIBILITY = {
+    'O-': {'O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'},
+    'O+': {'O+', 'A+', 'B+', 'AB+'},
+    'A-': {'A-', 'A+', 'AB-', 'AB+'},
+    'A+': {'A+', 'AB+'},
+    'B-': {'B-', 'B+', 'AB-', 'AB+'},
+    'B+': {'B+', 'AB+'},
+    'AB-': {'AB-', 'AB+'},
+    'AB+': {'AB+'},
+}
+
+COMPATIBLE_DONOR_GROUPS = {}
+for _donor_bg, _recipient_bgs in BLOOD_COMPATIBILITY.items():
+    for _rec_bg in _recipient_bgs:
+        COMPATIBLE_DONOR_GROUPS.setdefault(_rec_bg, set()).add(_donor_bg)
+
+def is_blood_compatible(donor_group, recipient_group):
+    """Returns True if donor_group can donate to recipient_group."""
+    if not donor_group or not recipient_group:
+        return False
+    return recipient_group in BLOOD_COMPATIBILITY.get(donor_group, set())
+
+def get_compatible_donor_groups(recipient_group):
+    """Returns set of donor blood groups that can donate to recipient_group."""
+    if not recipient_group:
+        return set()
+    return COMPATIBLE_DONOR_GROUPS.get(recipient_group, set())
+
 STATUS_CHOICES = [
     ('completed', 'Completed'),
     ('scheduled', 'Scheduled'),
@@ -66,7 +94,7 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=25, blank=True)
     division = models.CharField(max_length=50, blank=True)
     district = models.CharField(max_length=100, blank=True)
-    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, default='O+', blank=True)
+    blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES, default='', blank=True)
     emergency_available = models.BooleanField(default=True, help_text="Available for emergency blood requests")
     is_approved = models.BooleanField(default=False, help_text="Approved by administrator before login is permitted")
     
@@ -238,6 +266,20 @@ class BloodRequestResponse(models.Model):
         verbose_name_plural = "Blood Request Responses"
         ordering = ['-created_at']
         unique_together = ('request', 'donor')
+
+    @property
+    def is_hospital(self):
+        try:
+            return hasattr(self.donor, 'profile') and self.donor.profile and self.donor.profile.role == 'hospital'
+        except Exception:
+            return False
+
+    @property
+    def donor_phone(self):
+        try:
+            return self.donor.profile.phone_number if (hasattr(self.donor, 'profile') and self.donor.profile) else ''
+        except Exception:
+            return ''
 
     def __str__(self):
         return f"{self.donor.username} -> Request #{self.request.id} ({self.status})"
