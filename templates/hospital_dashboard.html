@@ -9,8 +9,7 @@
   <!-- Hospital Overview Header -->
   <div class="dashboard-header-card">
     <div class="donor-info-group">
-      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #059669 0%, #047857 100%);">
-        
+      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #059669 0%, #047857 100%); width: 52px; height: 52px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
       </div>
       <div>
         <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
@@ -25,7 +24,7 @@
     </div>
 
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
+      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; text-decoration: none;">
         Print PDF Records
       </a>
       <a href="{% url 'post_request' %}" class="btn-primary" style="width: auto; padding: 10px 18px;">
@@ -34,14 +33,59 @@
     </div>
   </div>
 
+  {% if user_notifications %}
+    <div class="dash-card" style="margin-bottom: 1.25rem;">
+      <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+        <h2 class="dash-card-title" style="display: flex; align-items: center; gap: 8px;">
+          <span> Notifications & In-App Alerts</span>
+          {% if unread_notifications_count > 0 %}
+            <span class="badge-status" style="background: #FEF2F2; color: #E63946; font-weight: 800;">{{ unread_notifications_count }} Unread</span>
+          {% endif %}
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+        {% for notif in user_notifications %}
+          <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="font-size: 1.2rem; line-height: 1;">
+                {% if notif.notification_type == 'emergency_request' %}
+                  🚨
+                {% elif notif.notification_type == 'response_received' %}
+                  🙋
+                {% elif notif.notification_type == 'stock_supplied' %}
+                  
+                {% else %}
+                  📩
+                {% endif %}
+              </span>
+              <div>
+                <strong style="color: #0F172A; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                  {{ notif.title }}
+                  <span style="font-size: 0.7rem; color: #64748B; background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-weight: normal;">
+                    {{ notif.get_notification_type_display }}
+                  </span>
+                </strong>
+                <div style="font-size: 0.8rem; color: var(--text-main); margin-top: 3px; white-space: pre-line;">{{ notif.message }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); opacity: 0.8; margin-top: 4px;">{{ notif.created_at|timesince }} ago ({{ notif.created_at|date:"M d, g:i A" }})</div>
+              </div>
+            </div>
+            {% if notif.link %}
+              <a href="{{ notif.link }}" class="btn-secondary" style="padding: 5px 12px; font-size: 0.75rem; white-space: nowrap; background: var(--primary); color: #FFF; border: none;">View Details</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Dashboard Stats -->
   <div class="stat-summary-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #34D399;">{{ total_units_in_stock }} <span style="font-size:1rem; color:var(--text-muted);">Bags</span></div>
+      <div class="dash-stat-val" style="color: #059669;">{{ total_units_in_stock }} <span style="font-size:1rem; color:var(--text-muted);">Bags</span></div>
       <div class="dash-stat-lbl">Total Blood Stock</div>
     </div>
     <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #F87171;">{{ active_requests_count }}</div>
+      <div class="dash-stat-val" style="color: #E63946;">{{ active_requests_count }}</div>
       <div class="dash-stat-lbl">Live Emergency Requests</div>
     </div>
     <div class="dash-stat-box">
@@ -49,7 +93,7 @@
       <div class="dash-stat-lbl">Hospital Broadcasts</div>
     </div>
     <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #60A5FA;">8</div>
+      <div class="dash-stat-val" style="color: #2563EB;">8</div>
       <div class="dash-stat-lbl">Tracked Blood Types</div>
     </div>
   </div>
@@ -64,17 +108,17 @@
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
       {% for item in inventory %}
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 1.2rem; border-radius: var(--radius-md);">
+        <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 1.2rem; border-radius: var(--radius-md);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <span class="blood-pill" style="font-size: 1.1rem; padding: 6px 14px; background: var(--primary);">{{ item.blood_group }}</span>
-            <span style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF;">{{ item.units }} <small style="font-size:0.75rem; color:var(--text-muted);">Units</small></span>
+            <span class="blood-pill" style="font-size: 1.1rem; padding: 6px 14px; background: var(--primary); color: #FFFFFF;">{{ item.blood_group }}</span>
+            <span style="font-size: 1.4rem; font-weight: 800; color: #0F172A;">{{ item.units }} <small style="font-size:0.75rem; color:var(--text-muted);">Units</small></span>
           </div>
 
           <form method="POST" action="{% url 'update_hospital_inventory' %}" style="display: flex; gap: 6px;">
             {% csrf_token %}
             <input type="hidden" name="blood_group" value="{{ item.blood_group }}">
             <input type="number" name="units" value="{{ item.units }}" min="0" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;" required>
-            <button type="submit" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; background: rgba(16,185,129,0.2); color: #34D399; border-color: rgba(16,185,129,0.4);">
+            <button type="submit" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem; background: #ECFDF5; color: #047857; border-color: #A7F3D0;">
               Save
             </button>
           </form>
@@ -133,7 +177,7 @@
       <!-- Live Emergency Blood Requests across platform -->
       <div class="dash-card">
         <div class="dash-card-header">
-          <h2 class="dash-card-title" style="color: #F87171;">
+          <h2 class="dash-card-title" style="color: #E63946;">
             Urgent Emergency Blood Requests
           </h2>
         </div>
@@ -141,45 +185,50 @@
         {% if all_active_requests %}
           <div style="display: flex; flex-direction: column; gap: 0.75rem;">
             {% for item in all_active_requests %}
-              {% with req=item.object stock=item.stock_units has_stock=item.has_stock is_own=item.is_own %}
-                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md);">
+              {% with req=item.object stock=item.stock_units has_stock=item.has_stock is_own=item.is_own is_targeted=item.is_targeted %}
+                <div id="request-{{ req.id }}" style="background: #F8FAFC; border: 1px solid {% if is_targeted %}#FCD34D{% else %}var(--bg-card-border){% endif %}; padding: 12px; border-radius: var(--radius-md);">
                   <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
                     <div>
-                      <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="badge-status" style="background: rgba(230,57,70,0.2); color:#F87171; font-size:0.75rem;">
+                      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span class="badge-status" style="background: #FEF2F2; color:#E63946; font-size:0.75rem;">
                           {{ req.blood_group }} ({{ req.units_required }} Unit{% if req.units_required > 1 %}s{% endif %})
                         </span>
+                        {% if is_targeted %}
+                          <span class="badge-status" style="background: #FEF3C7; color:#D97706; font-size:0.75rem; border: 1px solid #FCD34D;">
+                            ★ Direct Request to Your Hospital Stock
+                          </span>
+                        {% endif %}
                         {% if has_stock %}
-                          <span class="badge-status" style="background: rgba(16,185,129,0.2); color:#34D399; font-size:0.7rem;">
+                          <span class="badge-status" style="background: #ECFDF5; color:#047857; font-size:0.7rem;">
                             ✓ Stock Avail. ({{ stock }})
                           </span>
                         {% endif %}
                         {% if is_own %}
-                          <span class="badge-status" style="background: rgba(59,130,246,0.2); color:#60A5FA; font-size:0.7rem;">
+                          <span class="badge-status" style="background: #EFF6FF; color:#2563EB; font-size:0.7rem;">
                             My Request
                           </span>
                         {% endif %}
                       </div>
 
-                      <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-top: 6px;">
-                        {{ req.patient_name }}
+                      <h3 style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-top: 6px;">
+                        {{ req.clean_patient_name }}
                       </h3>
                       <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
                         Hospital: {{ req.hospital_name }} • Location: {{ req.district }}, {{ req.division }}
                       </div>
                       <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                        Contact: <strong style="color: #FFFFFF;">{{ req.contact_phone }}</strong>
+                        Contact: <strong style="color: #0F172A;">{{ req.contact_phone }}</strong>
                       </div>
                     </div>
 
                     <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                       {% if req.status == 'fulfilled' %}
                         <span class="badge-status badge-completed" style="font-size: 0.75rem;">✓ Fulfilled</span>
-                      {% elif has_stock and not is_own and req.status == 'active' %}
+                      {% elif not is_own and req.status == 'active' %}
                         <form method="POST" action="{% url 'fulfill_request_with_stock' req.id %}">
                           {% csrf_token %}
                           <button type="submit" class="btn-primary" style="padding: 7px 14px; font-size: 0.775rem; font-weight: 600; white-space: nowrap; min-width: 140px; text-align: center; background: linear-gradient(135deg, #10B981 0%, #059669 100%); border: none; display: inline-flex; align-items: center; justify-content: center;">
-                            Supply Stock
+                            {% if is_targeted %}Accept & Supply Stock{% else %}Supply Stock{% endif %}
                           </button>
                         </form>
                       {% endif %}
@@ -208,9 +257,9 @@
         {% if hospital_requests %}
           <div style="display: flex; flex-direction: column; gap: 0.75rem;">
             {% for req in hospital_requests %}
-              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+              <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
+                  <strong style="color: #0F172A; font-size: 0.95rem;">{{ req.clean_patient_name }} ({{ req.blood_group }})</strong>
                   <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
                     Units: {{ req.units_required }} • Status: <strong>{{ req.get_status_display }}</strong>
                   </div>
@@ -231,9 +280,105 @@
         {% endif %}
       </div>
 
+      <!-- OpenStreetMap Hospital Location Share Card -->
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <h2 class="dash-card-title" style="display: flex; align-items: center; gap: 8px;">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: #10B981;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            Hospital OpenStreetMap Location
+          </h2>
+        </div>
+
+        <p style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
+          Share your hospital facility's GPS location on OpenStreetMap so emergency blood seekers and donors can locate your blood bank instantly.
+        </p>
+
+        <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px; background: #ECFDF5; color: #047857; border-color: #A7F3D0;" onclick="shareHospitalLocation()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          </svg>
+          <span id="hospitalLocBtnText">Share / Update Hospital Location</span>
+        </button>
+
+        <!-- OpenStreetMap Container -->
+        <div id="hospitalMap" style="height: 250px; border-radius: var(--radius-md); margin-top: 1rem;"></div>
+
+        <div style="margin-top: 1rem; font-size: 0.775rem; color: var(--text-muted);">
+          <div>Lat/Lng Status: <strong id="hospitalCoordsStatus" style="color: #0F172A;">{% if profile.has_shared_location %}{{ profile.latitude }}, {{ profile.longitude }}{% else %}Not Shared Yet{% endif %}</strong></div>
+          <div id="hospitalLastUpdateText" style="margin-top: 2px;">Last Updated: {% if profile.last_location_update %}{{ profile.last_location_update|date:"M d, Y g:i A" }}{% else %}Never{% endif %}</div>
+        </div>
+      </div>
+
     </div>
 
   </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let initialLat = parseFloat("{{ profile.latitude|default:'23.8103' }}") || 23.8103;
+  let initialLng = parseFloat("{{ profile.longitude|default:'90.4125' }}") || 90.4125;
+  let hasLocation = "{{ profile.has_shared_location|yesno:'true,false' }}" === "true";
+
+  let hospitalMap = L.map('hospitalMap').setView([initialLat, initialLng], hasLocation ? 14 : 11);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+  }).addTo(hospitalMap);
+
+  let hospitalMarker = null;
+  if (hasLocation) {
+    hospitalMarker = L.marker([initialLat, initialLng]).addTo(hospitalMap)
+      .bindPopup("<b>{{ user.get_full_name|default:user.username }}</b><br>Hospital Blood Bank Facility")
+      .openPopup();
+  }
+
+  function shareHospitalLocation() {
+    const locBtnText = document.getElementById("hospitalLocBtnText");
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    locBtnText.textContent = "Locating Hospital Facility...";
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+
+      fetch("{% url 'update_location' %}", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng })
+      })
+      .then(res => res.json())
+      .then(data => {
+        locBtnText.textContent = "Share / Update Hospital Location";
+        if (data.status === "success") {
+          document.getElementById("hospitalCoordsStatus").textContent = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          document.getElementById("hospitalLastUpdateText").textContent = `Last Updated: ${data.updated_at}`;
+
+          hospitalMap.setView([lat, lng], 14);
+          if (hospitalMarker) {
+            hospitalMarker.setLatLng([lat, lng]);
+          } else {
+            hospitalMarker = L.marker([lat, lng]).addTo(hospitalMap);
+          }
+          hospitalMarker.bindPopup("<b>{{ user.get_full_name|default:user.username }}</b><br>Updated Hospital Location").openPopup();
+          alert("Hospital location updated successfully on OpenStreetMap!");
+        }
+      });
+    }, function(err) {
+      locBtnText.textContent = "Share / Update Hospital Location";
+      alert("Unable to fetch location: " + err.message);
+    });
+  }
+</script>
 {% endblock %}

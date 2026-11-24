@@ -23,14 +23,14 @@
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
       {% for item in requests_with_donors %}
         {% with req=item.object responses=item.responses matched_donors=item.matched_donors hospital_stocks=item.hospital_stocks %}
-          <div class="dash-card">
+          <div class="dash-card" id="request-{{ req.id }}">
             <div class="dash-card-header">
               <div>
-                <span class="badge-status" style="background: rgba(230,57,70,0.2); color:#F87171; font-size:0.85rem;">
+                <span class="badge-status" style="background: #FEF2F2; color:#E63946; font-size:0.85rem;">
                   {{ req.blood_group }} Needed ({{ req.units_required }} Bag{% if req.units_required > 1 %}s{% endif %})
                 </span>
-                <h2 style="font-size: 1.3rem; font-weight: 800; color: #FFFFFF; margin-top: 8px;">
-                  Patient: {{ req.patient_name }}
+                <h2 style="font-size: 1.3rem; font-weight: 800; color: #0F172A; margin-top: 8px;">
+                  Patient: {{ req.clean_patient_name }}
                 </h2>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
                    {{ req.hospital_name }} • {{ req.district }}, {{ req.division }} • Urgency: <strong>{{ req.get_urgency_display }}</strong>
@@ -43,23 +43,23 @@
                   <span class="badge-status badge-completed" style="margin-bottom: 8px; display: inline-block;">Active Request</span>
                   <form method="POST" action="{% url 'update_request_status' req.id %}" style="display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px;">
                     {% csrf_token %}
-                    <button type="submit" name="status" value="fulfilled" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: rgba(16,185,129,0.2); color:#34D399; border-color:rgba(16,185,129,0.4);">
+                    <button type="submit" name="status" value="fulfilled" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: #ECFDF5; color:#047857; border-color:#A7F3D0;">
                       ✓ Mark Fulfilled
                     </button>
-                    <button type="submit" name="status" value="cancelled" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: rgba(239,68,68,0.2); color:#F87171; border-color:rgba(239,68,68,0.4);">
+                    <button type="submit" name="status" value="cancelled" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: #FEF2F2; color:#B91C1C; border-color:#FECACA;">
                       ✕ Cancel
                     </button>
                   </form>
                 {% elif req.status == 'fulfilled' %}
                   <span class="badge-status badge-completed">✓ Fulfilled</span>
                 {% else %}
-                  <span class="badge-status" style="background: rgba(239,68,68,0.15); color: #F87171;">Cancelled</span>
+                  <span class="badge-status" style="background: #FEF2F2; color: #B91C1C;">Cancelled</span>
                 {% endif %}
               </div>
             </div>
 
             {% if req.notes %}
-              <div style="background: rgba(15,23,42,0.6); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-main); margin-bottom: 1rem;">
+              <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-main); margin-bottom: 1rem;">
                 <strong>Notes:</strong> {{ req.notes }}
               </div>
             {% endif %}
@@ -67,36 +67,39 @@
             <!-- Volunteer Responses Section -->
             {% if responses %}
               <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: #059669; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
                   <span>Donor Volunteer Responses ({{ responses|length }})</span>
                 </h3>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                   {% for resp in responses %}
-                    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 14px; border-radius: var(--radius-md);">
+                    <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 12px 14px; border-radius: var(--radius-md);">
                       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                         <div>
-                          <strong style="color: #FFFFFF; font-size: 0.95rem;">
+                          <strong style="color: #0F172A; font-size: 0.95rem;">
                             {% if resp.is_hospital %}Hospital Supply Notice: {% endif %}{{ resp.donor.get_full_name|default:resp.donor.username }}
                           </strong>
                           {% if resp.is_hospital %}
-                            <div style="font-size: 0.8rem; color: #34D399; margin-top: 2px; font-weight: 700;">
+                            <div style="font-size: 0.8rem; color: #047857; margin-top: 2px; font-weight: 700;">
                               Hospital is supplying blood stock for your request!
                             </div>
                           {% else %}
                             <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 6px;">({{ resp.donor.profile.blood_group }})</span>
+                            <div style="font-size: 0.85rem; color: #2563EB; margin-top: 4px; font-weight: 700; background: #EFF6FF; padding: 6px 12px; border-radius: 6px; display: inline-block;">
+                              📞 Contact Phone: <strong>{{ resp.donor_phone|default:resp.donor.email }}</strong>
+                            </div>
                           {% endif %}
-                          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">
+                          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
                             Location: {{ resp.donor.profile.district }}, {{ resp.donor.profile.division }} • Date: {{ resp.created_at|date:"M d, Y g:i A" }}
                           </div>
                         </div>
                         {% if resp.is_hospital %}
-                          <a href="tel:{{ resp.donor_phone }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-                            Call {{ resp.donor_phone }}
-                          </a>
+                          <span class="badge-status" style="background: #D1FAE5; color:#047857; font-weight:700; font-size:0.8rem;">
+                            ✓ Stock Reserved
+                          </span>
                         {% else %}
-                          <a href="tel:{{ resp.donor_phone }}" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto;">
-                            Call {{ resp.donor_phone }}
-                          </a>
+                          <span class="badge-status" style="background: #D1FAE5; color:#047857; font-weight:700; font-size:0.8rem;">
+                            ✓ Volunteer Accepted & Contact Available
+                          </span>
                         {% endif %}
                       </div>
 
@@ -107,7 +110,7 @@
                       {% endif %}
 
                       {% if resp.has_recent_donation %}
-                        <div style="margin-top: 8px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #FBBF24; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; line-height: 1.4;">
+                        <div style="margin-top: 8px; background: #FEF3C7; border: 1px solid #FCD34D; color: #D97706; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; line-height: 1.4;">
                           ⚠️ <strong>Emergency Override Message:</strong> Donor already donated blood on <strong>{{ resp.recent_donation_date|date:"b d, Y" }}</strong>. Standard regular next due date is <strong>{{ resp.next_due_date|date:"b d, Y" }}</strong>. They have volunteered to donate again for your emergency request.
                         </div>
                       {% endif %}
@@ -120,7 +123,7 @@
             {% if req.status == 'active' %}
               <!-- Matched Donors Section -->
               <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
                   <span> Matched Available Donors Nearby</span>
                   <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">
                     View All Matching Donors →
@@ -130,26 +133,34 @@
                 {% if matched_donors %}
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;">
                     {% for donor in matched_donors %}
-                      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-md);">
+                      <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-md);">
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                           <div>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                              <strong style="color: #FFFFFF; font-size: 0.9rem;">{{ donor.user.get_full_name|default:donor.user.username }}</strong>
-                              <span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; font-size: 0.75rem; padding: 2px 8px; font-weight: 700;">
-                                {{ donor.blood_group }}
-                              </span>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                              <strong style="color: #0F172A; font-size: 0.9rem;">{{ donor.blood_group }}, Donor</strong>
+                              {% if donor.suitability %}
+                                <span class="badge-status" style="background: {{ donor.suitability.badge_bg }}; color: {{ donor.suitability.badge_color }}; font-size: 0.7rem; padding: 2px 6px; font-weight: 800;">
+                                  {{ donor.suitability.display_text }}
+                                </span>
+                              {% endif %}
                             </div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
                                {{ donor.district }}, {{ donor.division }}
                             </div>
                           </div>
-                          <a href="tel:{{ donor.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF;">
-                             Call
-                          </a>
+                          {% if donor.user.id in requested_target_ids %}
+                            <span class="badge-status badge-completed" style="padding: 4px 12px; font-size: 0.75rem; background: #EFF6FF; color: #2563EB; font-weight: 700;">
+                              ✓ Requested
+                            </span>
+                          {% else %}
+                            <a href="{% url 'post_request' %}?target_donor_id={{ donor.user.id }}&blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}&district={{ req.district|urlencode }}" class="btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; background: var(--primary); color: #FFF; border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                              Request Directly
+                            </a>
+                          {% endif %}
                         </div>
 
                         {% if donor.is_recently_donated %}
-                          <div style="margin-top: 6px; font-size: 0.75rem; color: #FBBF24; background: rgba(245,158,11,0.12); padding: 4px 8px; border-radius: 4px;">
+                          <div style="margin-top: 6px; font-size: 0.75rem; color: #D97706; background: #FEF3C7; padding: 4px 8px; border-radius: 4px;">
                             ⚠️ Donated on <strong>{{ donor.recent_donation_info.donation_date|date:"b d, Y" }}</strong> (Next due: {{ donor.recent_donation_info.due_date|date:"b d, Y" }})
                           </div>
                         {% endif %}
@@ -166,23 +177,33 @@
               <!-- Hospital Stock Available for this Request -->
               {% if hospital_stocks %}
                 <div style="margin-top: 1rem; border-top: 1px solid var(--bg-card-border); padding-top: 1rem;">
-                  <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                  <h3 style="font-size: 0.95rem; font-weight: 700; color: #059669; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 6px;">
                     <span>Hospital Blood Bank Stock Available ({{ req.blood_group }})</span>
                   </h3>
                   <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     {% for hstock in hospital_stocks %}
-                      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                      <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 10px 14px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                         <div>
-                          <strong style="color: #FFFFFF; font-size: 0.9rem;">{{ hstock.hospital.get_full_name|default:hstock.hospital.username }}</strong>
-                          <span style="font-size: 0.775rem; color: var(--text-muted); margin-left: 6px;">({{ hstock.hospital.profile.phone_number }})</span>
+                          <strong style="color: #0F172A; font-size: 0.9rem;">{{ hstock.hospital.get_full_name|default:hstock.hospital.username }}</strong>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                          <span class="badge-status" style="background: rgba(16, 185, 129, 0.25); color: #34D399; font-weight: 700; font-size: 0.8rem;">
+                          <span class="badge-status" style="background: #D1FAE5; color: #047857; font-weight: 700; font-size: 0.8rem;">
                             {{ hstock.units }} Bag{% if hstock.units > 1 %}s{% endif %} in Stock
                           </span>
-                          <a href="tel:{{ hstock.hospital.profile.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF; text-decoration: none;">
-                            Call
-                          </a>
+                          {% if hstock.hospital.id in requested_target_ids %}
+                            <span class="badge-status badge-completed" style="padding: 4px 12px; font-size: 0.75rem; background: #EFF6FF; color: #2563EB; font-weight: 700;">
+                              ✓ Requested
+                            </span>
+                          {% else %}
+                            <form method="POST" action="{% url 'post_request' %}">
+                              {% csrf_token %}
+                              <input type="hidden" name="direct_request" value="true">
+                              <input type="hidden" name="target_donor_id" value="{{ hstock.hospital.id }}">
+                              <button type="submit" class="btn-secondary" style="padding: 4px 12px; font-size: 0.75rem; background: var(--primary); color: #FFF; border: none; cursor: pointer;">
+                                Request Stock
+                              </button>
+                            </form>
+                          {% endif %}
                         </div>
                       </div>
                     {% endfor %}
@@ -200,7 +221,7 @@
       <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity: 0.4; margin-bottom: 0.75rem;">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
       </svg>
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF;">You Have Not Posted Any Emergency Blood Requests Yet</h3>
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #0F172A;">You Have Not Posted Any Emergency Blood Requests Yet</h3>
       <p style="font-size: 0.85rem; margin-top: 6px;">Need urgent blood supply? Post an emergency request to alert nearby donors.</p>
       <a href="{% url 'post_request' %}" class="btn-primary" style="display: inline-flex; width: auto; margin-top: 1rem; padding: 10px 20px;">
          Post Emergency Request Now

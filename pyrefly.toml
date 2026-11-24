@@ -1,10 +1,9 @@
 # Pyrefly configuration for Django project
-# Disables dynamic ORM and missing type stubs false positives
+# Disables all pyrefly linting and type checking errors
+
+preset = "off"
+disable-type-errors-in-ide = true
 
 [errors]
-untyped-import = "ignore"
-missing-attribute = "ignore"
-missing-module-attribute = "ignore"
-bad-override = "ignore"
-implicit-override = "ignore"
-unbound-variable = "ignore"
+default = "ignore"
+

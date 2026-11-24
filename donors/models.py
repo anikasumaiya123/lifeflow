@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from django.core.exceptions import ValidationError
 
 ROLE_CHOICES = [
     ('donor', 'Blood Donor (Individual)'),
@@ -49,6 +50,133 @@ def get_compatible_donor_groups(recipient_group):
         return set()
     return COMPATIBLE_DONOR_GROUPS.get(recipient_group, set())
 
+def calculate_donor_suitability_score(donor_profile, recipient_bg=None, distance_km=None):
+    """
+    Calculates a 0-100 AI Donor Suitability Score based on 5 weighted criteria:
+    1. Compatibility       - Max 40 points
+    2. Availability        - Max 25 points
+    3. Distance            - Max 20 points
+    4. Eligibility         - Max 10 points
+    5. Location Freshness  - Max 5 points
+    --------------------------------------
+    Total                  - Max 100 points
+    Returns dict with score, label, color, and list of bullet explanations.
+    """
+    score = 0
+    reasons = []
+
+    # 1. Compatibility (Max 40 pts) - Absolute Medical Disqualifier
+    donor_bg = getattr(donor_profile, 'blood_group', '')
+    if recipient_bg:
+        if not is_blood_compatible(donor_bg, recipient_bg):
+            return {
+                'score': 0,
+                'label': 'Incompatible Blood Group',
+                'color': '#EF4444',
+                'badge_bg': '#FEF2F2',
+                'badge_color': '#B91C1C',
+                'reasons': [f"Incompatible blood group ({donor_bg} cannot donate to {recipient_bg})"],
+                'display_text': f"0/100 — Incompatible ({donor_bg} → {recipient_bg})"
+            }
+        if donor_bg == recipient_bg:
+            score += 40
+            reasons.append(f"Compatible exact match ({donor_bg})")
+        else:
+            score += 30
+            reasons.append(f"Compatible donor ({donor_bg} for {recipient_bg})")
+    else:
+        score += 35
+        reasons.append(f"Verified blood group ({donor_bg})")
+
+    # 2. Availability (Max 25 pts)
+    is_avail = getattr(donor_profile, 'emergency_available', False)
+    if is_avail:
+        score += 25
+        reasons.append("Available now")
+    else:
+        reasons.append("Currently unavailable")
+
+    # 3. Distance (Max 20 pts)
+    if distance_km is not None:
+        try:
+            d_val = float(distance_km)
+            if d_val <= 5.0:
+                score += 20
+                reasons.append(f"{d_val:.1f} km away")
+            elif d_val <= 15.0:
+                score += 15
+                reasons.append(f"{d_val:.1f} km away")
+            elif d_val <= 30.0:
+                score += 10
+                reasons.append(f"{d_val:.1f} km away")
+            else:
+                score += 5
+                reasons.append(f"{d_val:.1f} km away")
+        except (ValueError, TypeError):
+            score += 10
+            reasons.append("Nearby location match")
+    else:
+        score += 10
+        reasons.append("District location match")
+
+    # 4. Eligibility (Max 10 pts)
+    recently_donated = getattr(donor_profile, 'is_recently_donated', False)
+    if not recently_donated:
+        score += 10
+        reasons.append("Eligible based on recorded donation history")
+    else:
+        score += 3
+        reasons.append("Recent donation recorded within 90 days")
+
+    # 5. Location Freshness (Max 5 pts)
+    last_update = getattr(donor_profile, 'last_location_update', None)
+    if last_update:
+        diff_seconds = (timezone.now() - last_update).total_seconds()
+        diff_hours = max(0, diff_seconds / 3600.0)
+        if diff_hours <= 24:
+            score += 5
+            if diff_hours < 1:
+                reasons.append("Location updated less than an hour ago")
+            else:
+                reasons.append(f"Location updated {int(diff_hours)} hours ago")
+        elif diff_hours <= 168:
+            score += 3
+            reasons.append(f"Location updated {int(diff_hours / 24)} days ago")
+        else:
+            score += 1
+            reasons.append("Location profile on record")
+    else:
+        score += 2
+        reasons.append("Location profile recorded")
+
+    score = min(100, max(0, score))
+
+    if score >= 85:
+        label = "Highly Suitable"
+        badge_color = "#10B981"
+        badge_bg = "rgba(16, 185, 129, 0.2)"
+    elif score >= 65:
+        label = "Suitable"
+        badge_color = "#3B82F6"
+        badge_bg = "rgba(59, 130, 246, 0.2)"
+    elif score >= 40:
+        label = "Moderately Suitable"
+        badge_color = "#F59E0B"
+        badge_bg = "rgba(245, 158, 11, 0.2)"
+    else:
+        label = "Low Match"
+        badge_color = "#9CA3AF"
+        badge_bg = "rgba(156, 163, 175, 0.2)"
+
+    return {
+        'score': score,
+        'label': label,
+        'badge_color': badge_color,
+        'badge_bg': badge_bg,
+        'reasons': reasons,
+        'display_text': f"{score}/100 — {label}"
+    }
+
 STATUS_CHOICES = [
     ('completed', 'Completed'),
     ('scheduled', 'Scheduled'),
@@ -65,6 +193,7 @@ REQUEST_STATUS_CHOICES = [
     ('active', 'Active Request'),
     ('fulfilled', 'Fulfilled'),
     ('cancelled', 'Cancelled'),
+    ('expired', 'Expired'),
 ]
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -115,8 +244,13 @@ class UserProfile(models.Model):
         return self.latitude is not None and self.longitude is not None
 
     def get_last_donation(self):
-        """Returns the latest completed donation for this user."""
-        return DonationHistory.objects.filter(donor=self.user, status='completed').order_by('-donation_date').first()
+        """Returns the latest completed donation for this user on or before today."""
+        today = timezone.now().date()
+        return DonationHistory.objects.filter(
+            donor=self.user,
+            status='completed',
+            donation_date__lte=today
+        ).order_by('-donation_date').first()
 
     @property
     def is_recently_donated(self):
@@ -194,6 +328,8 @@ class DonationHistory(models.Model):
     units_donated = models.PositiveIntegerField(default=1, help_text="Bags / Units of blood donated")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completed')
     notes = models.TextField(blank=True)
+    verification_id = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Unique Verification Certificate ID")
+    verified_by_hospital = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_donations', help_text="Hospital user account that verified this donation")
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = DonationHistoryManager()
@@ -203,11 +339,25 @@ class DonationHistory(models.Model):
         verbose_name_plural = "Donation Histories"
         ordering = ['-donation_date']
 
+    def clean(self):
+        super().clean()
+        if self.donation_date:
+            don_date = self.donation_date
+            if hasattr(don_date, 'date') and callable(getattr(don_date, 'date')):
+                don_date = don_date.date()
+            if don_date > timezone.now().date():
+                raise ValidationError({'donation_date': "Donation date cannot be in the future."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.donor.username} - {self.location_hospital} ({self.donation_date})"
 
 class BloodRequest(models.Model):
     seeker = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blood_requests')
+    target_donor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='targeted_blood_requests', help_text="Specific donor or hospital requested directly by seeker")
     patient_name = models.CharField(max_length=150)
     blood_group = models.CharField(max_length=5, choices=BLOOD_GROUP_CHOICES)
     units_required = models.PositiveIntegerField(default=1)
@@ -228,8 +378,30 @@ class BloodRequest(models.Model):
         verbose_name_plural = "Blood Requests"
         ordering = ['-created_at']
 
+    @property
+    def is_expired(self):
+        """Returns True if the request exceeds its urgency time limit."""
+        if self.status != 'active':
+            return self.status == 'expired'
+        now = timezone.now()
+        created = self.created_at
+        if not created:
+            return False
+        limit_hours = 24 if self.urgency in ('immediate', '24h') else (72 if self.urgency == '3d' else 48)
+        return (now - created).total_seconds() > (limit_hours * 3600)
+
+    @property
+    def clean_patient_name(self):
+        """Returns patient name stripped of redundant trailing blood group in parentheses."""
+        name = (self.patient_name or "").strip()
+        if '(' in name and name.endswith(')'):
+            bg_suffix = f"({self.blood_group})"
+            if name.endswith(bg_suffix):
+                return name[:-len(bg_suffix)].strip()
+        return name
+
     def __str__(self):
-        return f"{self.patient_name} ({self.blood_group}) - {self.hospital_name} [{self.get_status_display()}]"
+        return f"{self.clean_patient_name} ({self.blood_group}) - {self.hospital_name} [{self.get_status_display()}]"
 
 class HospitalInventory(models.Model):
     hospital = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hospital_inventories')
@@ -247,7 +419,7 @@ class HospitalInventory(models.Model):
 
 RESPONSE_STATUS_CHOICES = [
     ('pending', 'Pending Response'),
-    ('accepted', 'Accepted by Seeker'),
+    ('accepted', 'Accepted by Donor'),
     ('declined', 'Declined'),
 ]
 
@@ -283,5 +455,46 @@ class BloodRequestResponse(models.Model):
 
     def __str__(self):
         return f"{self.donor.username} -> Request #{self.request.id} ({self.status})"
+
+def auto_expire_old_requests():
+    """Automatically updates status of outdated active requests to 'expired' and purges old/obsolete notifications."""
+    now = timezone.now()
+    limit_24h = now - timedelta(hours=24)
+    # Mark any active request older than 24h as expired
+    BloodRequest.objects.filter(status='active', created_at__lt=limit_24h).update(status='expired')
+    # Purge notifications for expired, cancelled, or deleted requests, or notifications older than 24h
+    Notification.objects.filter(
+        models.Q(related_request__status__in=['expired', 'cancelled']) |
+        models.Q(related_request__isnull=True) |
+        models.Q(created_at__lt=limit_24h)
+    ).delete()
+
+NOTIFICATION_TYPES = [
+    ('emergency_request', 'Emergency Blood Request'),
+    ('response_received', 'Request Response Received'),
+    ('stock_supplied', 'Hospital Stock Supplied'),
+    ('direct_request', 'Direct Request Received'),
+    ('status_update', 'Request Status Update'),
+]
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, default='emergency_request')
+    related_request = models.ForeignKey(BloodRequest, on_delete=models.SET_NULL, null=True, blank=True, related_name='notifications')
+    link = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.recipient.username} - [{self.get_notification_type_display()}] {self.title}"
+
 
 

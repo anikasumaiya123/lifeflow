@@ -79,7 +79,11 @@ class UserLoginForm(forms.Form):
 class DonationHistoryForm(forms.ModelForm):
     donation_date = forms.DateField(
         initial=timezone.now,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-control',
+            'max': timezone.now().date().isoformat()
+        })
     )
     location_hospital = forms.CharField(
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Dhaka Medical College Hospital'})
@@ -101,6 +105,16 @@ class DonationHistoryForm(forms.ModelForm):
     class Meta:
         model = DonationHistory
         fields = ['donation_date', 'location_hospital', 'recipient_name', 'units_donated', 'notes']
+
+    def clean_donation_date(self):
+        donation_date = self.cleaned_data.get('donation_date')
+        if donation_date:
+            don_date = donation_date
+            if hasattr(don_date, 'date') and callable(getattr(don_date, 'date')):
+                don_date = don_date.date()
+            if don_date > timezone.now().date():
+                raise forms.ValidationError("Donation date cannot be in the future.")
+        return donation_date
 
 class BloodRequestForm(forms.ModelForm):
     patient_name = forms.CharField(widget=forms.TextInput(attrs={

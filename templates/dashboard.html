@@ -35,6 +35,51 @@
     </div>
   </div>
 
+  {% if user_notifications %}
+    <div class="dash-card" style="margin-bottom: 1.25rem;">
+      <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+        <h2 class="dash-card-title" style="display: flex; align-items: center; gap: 8px;">
+          <span> Notifications & In-App Alerts</span>
+          {% if unread_notifications_count > 0 %}
+            <span class="badge-status" style="background: #FEF2F2; color: #E63946; font-weight: 800;">{{ unread_notifications_count }} Unread</span>
+          {% endif %}
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+        {% for notif in user_notifications %}
+          <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="font-size: 1.2rem; line-height: 1;">
+                {% if notif.notification_type == 'emergency_request' %}
+                  🚨
+                {% elif notif.notification_type == 'response_received' %}
+                  🙋
+                {% elif notif.notification_type == 'stock_supplied' %}
+                  
+                {% else %}
+                  📩
+                {% endif %}
+              </span>
+              <div>
+                <strong style="color: #0F172A; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                  {{ notif.title }}
+                  <span style="font-size: 0.7rem; color: #64748B; background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-weight: normal;">
+                    {{ notif.get_notification_type_display }}
+                  </span>
+                </strong>
+                <div style="font-size: 0.8rem; color: var(--text-main); margin-top: 3px; white-space: pre-line;">{{ notif.message }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); opacity: 0.8; margin-top: 4px;">{{ notif.created_at|timesince }} ago ({{ notif.created_at|date:"M d, g:i A" }})</div>
+              </div>
+            </div>
+            {% if notif.link %}
+              <a href="{{ notif.link }}" class="btn-secondary" style="padding: 5px 12px; font-size: 0.75rem; white-space: nowrap; background: var(--primary); color: #FFF; border: none;">View Details</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Dashboard Main Grid -->
   <div class="dashboard-grid">
     
@@ -102,7 +147,7 @@
               <tbody>
                 {% for donation in donations %}
                   <tr>
-                    <td style="font-weight:700; color:#FFFFFF;">{{ donation.donation_date|date:"b d, Y" }}</td>
+                    <td style="font-weight:700; color:#000000;">{{ donation.donation_date|date:"b d, Y" }}</td>
                     <td>{{ donation.location_hospital }}</td>
                     <td>{{ donation.recipient_name|default:"General Emergency" }}</td>
                     <td>{{ donation.units_donated }} Bag(s)</td>
@@ -266,9 +311,9 @@
 
   let map = L.map('map').setView([initialLat, initialLng], hasLocation ? 14 : 11);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
   }).addTo(map);
 
   let marker = null;

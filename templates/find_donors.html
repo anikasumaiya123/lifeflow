@@ -7,14 +7,14 @@
 <div class="dashboard-container" style="max-width: 1280px;">
   
   <!-- Search & Filter Card -->
-  <div class="dashboard-header-card" style="flex-direction: column; align-items: stretch; gap: 1rem;">
+  <div class="dashboard-header-card" style="flex-direction: column; align-items: stretch; gap: 1rem; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; height: fit-content;">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <h1 style="font-size: 1.6rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 10px;">
-          <span> Find Emergency Blood Donors</span>
+        <h1 style="font-size: 1.5rem; font-weight: 800; color: #0F172A; display: flex; align-items: center; gap: 10px;">
+          <span>Find Emergency Blood Donors</span>
           <span class="bd-badge-subtle">{{ total_results }} Donors Found</span>
         </h1>
-        <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 4px;">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
           Search verified, available blood donors nearby in Bangladesh using OpenStreetMap & GPS distance calculation.
         </p>
       </div>
@@ -25,7 +25,7 @@
     </div>
 
     <!-- Filter Form -->
-    <form method="GET" action="{% url 'find_donors' %}" id="searchForm">
+    <form method="GET" action="{% url 'find_donors' %}" id="searchForm" style="height:155px">
       <input type="hidden" name="lat" id="searchLat" value="{{ seeker_lat }}">
       <input type="hidden" name="lng" id="searchLng" value="{{ seeker_lng }}">
 
@@ -64,11 +64,20 @@
           <input type="text" name="district" class="form-control" placeholder="Search District (e.g. Uttara)" value="{{ district }}" onchange="this.form.submit()">
         </div>
 
-        <!-- Distance Radius -->
+        <!-- Matching Mode -->
         <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label">Max Distance Radius</label>
+          <label class="form-label">Blood Group Filter Mode</label>
+          <select name="match_type" class="form-control form-select" onchange="this.form.submit()">
+            <option value="compatible" {% if match_type == 'compatible' or not match_type %}selected{% endif %}>Compatible Donors</option>
+            <option value="exact" {% if match_type == 'exact' %}selected{% endif %}>Exact Match Only</option>
+          </select>
+        </div>
+
+        <!-- Distance Radius Filter -->
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Distance Radius</label>
           <select name="radius" class="form-control form-select" onchange="this.form.submit()">
-            <option value="all" {% if radius == 'all' %}selected{% endif %}>Any Distance</option>
+            <option value="all" {% if radius == 'all' or not radius %}selected{% endif %}>All Distance</option>
             <option value="5" {% if radius == '5' %}selected{% endif %}>Within 5 km</option>
             <option value="10" {% if radius == '10' %}selected{% endif %}>Within 10 km</option>
             <option value="25" {% if radius == '25' %}selected{% endif %}>Within 25 km</option>
@@ -95,42 +104,61 @@
     <!-- OpenStreetMap Container -->
     <div class="dash-card" style="padding: 1rem;">
       <div class="dash-card-header" style="margin-bottom: 0.5rem;">
-        <h2 class="dash-card-title" style="font-size: 1rem;">🗺️ OpenStreetMap Donor Pins</h2>
+        <h2 class="dash-card-title" style="font-size: 1rem;">OpenStreetMap Donor Pins</h2>
       </div>
       <div id="donorMap" style="height: 480px; width: 100%; border-radius: var(--radius-md);"></div>
     </div>
 
     <!-- Donor Cards List -->
     <div>
-      {% if matched_hospital_stocks %}
-        <div class="dash-card" style="margin-bottom: 1rem; padding: 1rem 1.25rem;">
-          <div class="dash-card-header" style="margin-bottom: 0.5rem;">
-            <h3 style="font-size: 0.95rem; font-weight: 700; color: #10B981; display: flex; align-items: center; gap: 6px;">
-              <span>Hospital Blood Bank Stock Available {% if blood_group %}({{ blood_group }}){% endif %}</span>
-            </h3>
-          </div>
+      <div class="dash-card" style="margin-bottom: 1rem; padding: 1rem 1.25rem;">
+        <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: #059669; display: flex; align-items: center; gap: 6px;">
+            <span>Verified Hospital Blood Bank Stock Available {% if blood_group %}({{ blood_group }}){% endif %}</span>
+          </h3>
+        </div>
+        {% if matched_hospital_stocks %}
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             {% for hstock in matched_hospital_stocks %}
-              <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 10px 14px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 12px 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
-                  <strong style="color: #FFFFFF; font-size: 0.875rem;">{{ hstock.hospital.get_full_name|default:hstock.hospital.username }}</strong>
-                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                    {{ hstock.hospital.profile.district|default:"Bangladesh" }}, {{ hstock.hospital.profile.division }} • Contact: {{ hstock.hospital.profile.phone_number }}
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <strong style="color: #0F172A; font-size: 0.95rem;">{{ hstock.hospital_name }}</strong>
+                    {% if hstock.is_approved %}
+                      <span class="badge-status" style="background: #D1FAE5; color: #047857; font-weight: 700; font-size: 0.75rem; padding: 2px 8px;">✓ Verified Hospital</span>
+                    {% else %}
+                      <span class="badge-status" style="background: #FEF3C7; color: #D97706; font-size: 0.75rem; padding: 2px 8px;">Unverified</span>
+                    {% endif %}
+                  </div>
+                  <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap;">
+                    <span>{{ hstock.district }}, {{ hstock.division }}</span>
+                    <span>{{ hstock.distance_str }}</span>
+                    <span>Updated {{ hstock.timesince_update }} ago</span>
                   </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span class="badge-status" style="background: rgba(16, 185, 129, 0.25); color: #34D399; font-weight: 700; font-size: 0.8rem;">
-                    {{ hstock.blood_group }}: {{ hstock.units }} Bag{% if hstock.units > 1 %}s{% endif %}
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="badge-status" style="background: #D1FAE5; color: #047857; font-weight: 800; font-size: 0.85rem; padding: 6px 12px;">
+                    {{ hstock.blood_group }}: {{ hstock.units }} Unit{% if hstock.units > 1 %}s{% endif %}
                   </span>
-                  <a href="tel:{{ hstock.hospital.profile.phone_number }}" class="btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; background: var(--primary); color: #FFF; text-decoration: none;">
-                    Call
-                  </a>
+                  {% if hstock.is_requested %}
+                    <span class="badge-status badge-completed" style="padding: 6px 14px; font-size: 0.8rem; background: #EFF6FF; color: #2563EB; font-weight: 700;">
+                      ✓ Requested
+                    </span>
+                  {% else %}
+                    <a href="{% url 'post_request' %}?target_donor_id={{ hstock.hospital_id }}&blood_group={{ hstock.blood_group|urlencode }}&division={{ hstock.division|urlencode }}&district={{ hstock.district|urlencode }}" class="btn-secondary" style="padding: 6px 14px; font-size: 0.8rem; background: var(--primary); color: #FFF; border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                      Request Stock
+                    </a>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
           </div>
-        </div>
-      {% endif %}
+        {% else %}
+          <p style="font-size: 0.825rem; color: var(--text-muted); padding: 0.5rem 0; margin: 0;">
+            No hospital blood bank stock currently recorded matching your search filter.
+          </p>
+        {% endif %}
+      </div>
 
       {% if donors %}
         <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
@@ -142,35 +170,61 @@
                     {{ d.blood_group }}
                   </div>
                   <div>
-                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #FFFFFF;">{{ d.name }}</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <h3 style="font-size: 1.15rem; font-weight: 700; color: #0F172A; margin: 0;">{{ d.blood_group }}, Donor</h3>
+                      {% if d.suitability %}
+                        <span class="badge-status" style="background: {{ d.suitability.badge_bg }}; color: {{ d.suitability.badge_color }}; font-weight: 800; font-size: 0.8rem; border: 1px solid {{ d.suitability.badge_color }};">
+                          AI Match: {{ d.suitability.display_text }}
+                        </span>
+                      {% endif %}
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
                       Location: {{ d.district }}, {{ d.division }}
                     </p>
                     <div style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
                       {% if d.distance_km is not None %}
-                        <span class="badge-status" style="background: rgba(59, 130, 246, 0.2); color: #93C5FD;">Distance: {{ d.distance_km }} km away</span>
+                        <span class="badge-status" style="background: #EFF6FF; color: #2563EB;">Approximately {{ d.distance_km }} km away</span>
+                      {% else %}
+                        <span class="badge-status" style="background: #F1F5F9; color: #64748B;">Distance N/A</span>
                       {% endif %}
                       {% if d.is_available %}
-                        <span class="badge-status badge-completed">Available Now</span>
+                        <span class="badge-status badge-completed">Available</span>
                       {% else %}
-                        <span class="badge-status" style="background: rgba(239, 68, 68, 0.15); color: #F87171;">Unavailable</span>
+                        <span class="badge-status" style="background: #FEF2F2; color: #B91C1C;">Unavailable</span>
                       {% endif %}
                       {% if d.recent_info.recently_donated %}
-                        <span class="badge-status" style="background: rgba(245, 158, 11, 0.2); color: #FBBF24;">Donated Recently</span>
+                        <span class="badge-status" style="background: #FEF3C7; color: #D97706;">Donated Recently</span>
                       {% endif %}
                     </div>
+
+                    {% if d.suitability.reasons %}
+                      <div style="margin-top: 8px; font-size: 0.78rem; color: var(--text-muted); background: #F1F5F9; border: 1px solid #E2E8F0; padding: 6px 10px; border-radius: 6px;">
+                        <strong style="color: #64748B;">Suitability Breakdown:</strong>
+                        <ul style="margin: 4px 0 0 0; padding-left: 1.2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 2px 10px;">
+                          {% for reason in d.suitability.reasons %}
+                            <li>✓ {{ reason }}</li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    {% endif %}
                   </div>
                 </div>
 
                 <div>
-                  <a href="tel:{{ d.phone }}" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; width: auto;">
-                    Call {{ d.phone }}
-                  </a>
+                  {% if d.has_been_requested %}
+                    <span class="badge-status badge-completed" style="padding: 8px 16px; font-size: 0.85rem; background: #EFF6FF; color: #2563EB; font-weight: 700; display: inline-block;">
+                      ✓ Requested
+                    </span>
+                  {% else %}
+                    <a href="{% url 'post_request' %}?target_donor_id={{ d.user_id }}&blood_group={{ d.blood_group|urlencode }}&division={{ d.division|urlencode }}&district={{ d.district|urlencode }}" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; width: auto; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                      Request Directly
+                    </a>
+                  {% endif %}
                 </div>
               </div>
 
               {% if d.recent_info.recently_donated %}
-                <div style="margin-top: 10px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); color: #FBBF24; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; line-height: 1.4;">
+                <div style="margin-top: 10px; background: #FEF3C7; border: 1px solid #FCD34D; color: #D97706; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.8rem; line-height: 1.4;">
                   <strong>Emergency Notice:</strong> Donor already donated blood on <strong>{{ d.recent_info.donation_date }}</strong> (Next regular due date: <strong>{{ d.recent_info.due_date }}</strong>). They remain available for emergency requests.
                 </div>
               {% endif %}
@@ -179,7 +233,7 @@
         </div>
       {% else %}
         <div class="dash-card" style="text-align: center; padding: 3rem 1.5rem; color: var(--text-muted);">
-          <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF;">No Donors Match Your Search Criteria</h3>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: #0F172A;">No Donors Match Your Search Criteria</h3>
           <p style="font-size: 0.85rem; margin-top: 6px;">Try expanding your distance radius or changing blood group/division filters.</p>
         </div>
       {% endif %}
@@ -187,10 +241,12 @@
 
   </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  let csrfToken = "{{ csrf_token }}";
   let mapMarkersData = JSON.parse('{{ map_markers_json|default:"[]"|escapejs }}');
   let seekerLat = parseFloat("{{ seeker_lat }}");
   seekerLat = isNaN(seekerLat) ? 23.8103 : seekerLat;
@@ -200,9 +256,9 @@
 
   let map = L.map('donorMap').setView([seekerLat, seekerLng], hasSeekerGps ? 12 : 10);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
   }).addTo(map);
 
   if (hasSeekerGps) {
@@ -224,14 +280,23 @@
       let markerColor = m.available ? "#10B981" : "#EF4444";
       let marker = L.marker([m.lat, m.lng]).addTo(map);
       let recentNotice = m.recently_donated ? `<div style="font-size:0.75rem; color:#D97706; margin-top:4px; font-weight:600; background:#FEF3C7; padding:4px 6px; border-radius:4px;">Donated on ${m.recent_donation_date}<br>(Next regular due date: ${m.next_due_date})</div>` : '';
+      let reqForm = m.user_id ? `
+        <form method="POST" action="{% url 'post_request' %}" style="margin-top:8px;">
+          <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+          <input type="hidden" name="direct_request" value="true">
+          <input type="hidden" name="target_donor_id" value="${m.user_id}">
+          <button type="submit" style="padding:5px 12px; background:#E63946; color:#FFF; border:none; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer;">Request Directly</button>
+        </form>` : '';
+      let suitabilityHtml = m.suitability_text ? `<div style="font-size:0.75rem; font-weight:700; color:${m.suitability_color}; margin-top:4px;">AI Match: ${m.suitability_text}</div>` : '';
       marker.bindPopup(`
         <div style="font-family: sans-serif; color: #0F172A;">
-          <strong style="font-size: 1rem; color: #E63946;">${m.blood_group} - ${m.name}</strong><br>
+          <strong style="font-size: 1rem; color: #E63946;">${m.name}</strong><br>
           Location: ${m.location}<br>
-          Phone: <a href="tel:${m.phone}">${m.phone}</a><br>
           Distance: ${m.distance}<br>
           Status: <b style="color:${markerColor}">${m.available ? 'Available' : 'Unavailable'}</b>
+          ${suitabilityHtml}
           ${recentNotice}
+          ${reqForm}
         </div>
       `);
       bounds.push([m.lat, m.lng]);

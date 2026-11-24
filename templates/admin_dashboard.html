@@ -1,103 +1,385 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}Admin Portal - LifeFlow BD{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% load static %} {% block title %}System Analytics &
+Admin Dashboard - LifeFlow BD{% endblock %} {% block content %}
 <div class="dashboard-container">
   <!-- Header Bar -->
-  <div class="dash-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+  <div class="dash-card" style="margin-bottom: 1.25rem">
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      "
+    >
       <div>
-        <h1 class="dash-card-title" style="font-size: 1.5rem; color: #FFFFFF;">System Administration Portal</h1>
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
-          Manage user account approvals, monitor system activity, and print reports across Bangladesh.
+        <h1 class="dash-card-title" style="font-size: 1.5rem; color: #0f172a">
+          System Analytics & Admin Dashboard
+        </h1>
+        <div
+          style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px"
+        >
+          Real-time metrics, emergency blood demand charts, verified hospital
+          statistics, and account administration across Bangladesh.
         </div>
       </div>
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-        <a href="{% url 'print_donation_history_pdf' %}?report_type=6months&print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(16,185,129,0.2); color: #34D399; border-color: rgba(16,185,129,0.3); text-decoration: none;">
-          Print Past 6 Months Report
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap">
+        <a
+          href="{% url 'print_donation_history_pdf' %}?report_type=6months&print=1"
+          target="_blank"
+          class="btn-secondary"
+          style="
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            background: #ecfdf5;
+            color: #047857;
+            border-color: #a7f3d0;
+            text-decoration: none;
+          "
+        >
+          Print 6-Month System Audit Report
         </a>
       </div>
     </div>
   </div>
 
-  <!-- Summary Stats -->
-  <div class="stat-summary-grid" style="grid-template-columns: repeat(3, 1fr);">
-    <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #FBBF24;">{{ total_pending }}</div>
-      <div class="dash-stat-lbl">Pending Approvals</div>
+  <!-- 6 Key KPI Summary Cards -->
+  <div
+    class="stat-summary-grid"
+    style="
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    "
+  >
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #2563eb; font-size: 1.5rem">
+        {{ total_donors }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">Total Donors</div>
     </div>
-    <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #34D399;">{{ total_approved }}</div>
-      <div class="dash-stat-lbl">Verified Active Users</div>
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #059669; font-size: 1.5rem">
+        {{ active_donors }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">Active Donors</div>
     </div>
-    <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #60A5FA;">{{ donations_6mo_count }}</div>
-      <div class="dash-stat-lbl">6-Month System Donations</div>
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #e63946; font-size: 1.5rem">
+        {{ emergency_requests_count }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">
+        Emergency Requests
+      </div>
+    </div>
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #7c3aed; font-size: 1.5rem">
+        {{ requests_fulfilled_count }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">
+        Requests Fulfilled
+      </div>
+    </div>
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #d97706; font-size: 1.5rem">
+        {{ verified_hospitals_count }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">
+        Verified Hospitals
+      </div>
+    </div>
+    <div class="dash-stat-box" style="padding: 1rem 0.75rem">
+      <div class="dash-stat-val" style="color: #0284c7; font-size: 1.5rem">
+        {{ donations_this_month_count }}
+      </div>
+      <div class="dash-stat-lbl" style="font-size: 0.75rem">
+        Donations This Month
+      </div>
+    </div>
+  </div>
+
+  <!-- Analytics Charts Section: Blood Demand by Group & Requests by Division -->
+  <div
+    class="dashboard-grid"
+    style="grid-template-columns: 1fr 1fr; margin-bottom: 1.25rem; gap: 1.25rem"
+  >
+    <!-- Chart 1: Blood Demand by Group -->
+    <div class="dash-card">
+      <div class="dash-card-header" style="margin-bottom: 1rem">
+        <h2
+          class="dash-card-title"
+          style="
+            font-size: 1rem;
+            color: #e63946;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <span>🩸 Blood Demand by Group</span>
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.85rem">
+        {% for item in blood_demand_data %}
+        <div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 4px;
+              font-size: 0.825rem;
+            "
+          >
+            <span
+              style="
+                font-weight: 700;
+                color: #0f172a;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+              "
+            >
+              <span
+                class="badge-status"
+                style="
+                  background: #fef2f2;
+                  color: #e63946;
+                  font-weight: 800;
+                  font-size: 0.75rem;
+                  border: 1px solid #fecaca;
+                "
+                >{{ item.blood_group }}</span
+              >
+            </span>
+            <span style="color: var(--text-muted); font-size: 0.8rem">
+              <strong style="color: #0f172a">{{ item.count }}</strong> request{% if item.count != 1 %}s{% endif %} ({{ item.percentage }}%)
+            </span>
+          </div>
+          <div
+            style="
+              background: #f1f5f9;
+              border-radius: 6px;
+              height: 10px;
+              overflow: hidden;
+              width: 100%;
+            "
+          >
+            <div
+              style="background: linear-gradient(90deg, #E63946 0%, #F87171 100%); height: 100%; width: {{ item.bar_width }}%; border-radius: 6px; transition: width 0.4s ease;"
+            ></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Chart 2: Requests by Division -->
+    <div class="dash-card">
+      <div class="dash-card-header" style="margin-bottom: 1rem">
+        <h2
+          class="dash-card-title"
+          style="
+            font-size: 1rem;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          "
+        >
+          <span>Emergency Requests by Division</span>
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.85rem">
+        {% for item in requests_by_division_data %}
+        <div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 4px;
+              font-size: 0.825rem;
+            "
+          >
+            <span style="font-weight: 700; color: #0f172a"
+              >{{ item.division }}</span
+            >
+            <span style="color: var(--text-muted); font-size: 0.8rem">
+              <strong style="color: #0f172a">{{ item.count }}</strong> request{% if item.count != 1 %}s{% endif %} ({{ item.percentage }}%)
+            </span>
+          </div>
+          <div
+            style="
+              background: #f1f5f9;
+              border-radius: 6px;
+              height: 10px;
+              overflow: hidden;
+              width: 100%;
+            "
+          >
+            <div
+              style="background: linear-gradient(90deg, #2563EB 0%, #60A5FA 100%); height: 100%; width: {{ item.bar_width }}%; border-radius: 6px; transition: width 0.4s ease;"
+            ></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </div>
 
   <!-- Pending Approvals Section -->
   {% if pending_users %}
-    <div class="dash-card" style="border-color: rgba(245,158,11,0.4);">
-      <div class="dash-card-header">
-        <h2 class="dash-card-title" style="color: #FBBF24; font-size: 1.1rem;">
-          Pending User Account Approvals ({{ pending_users|length }})
-        </h2>
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-        {% for p in pending_users %}
-          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-            <div>
-              <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ p.user.get_full_name|default:p.user.username }}</strong>
-              <span class="badge-status" style="background: rgba(59,130,246,0.2); color: #60A5FA; margin-left: 6px;">{{ p.get_role_display }}</span>
-              {% if p.blood_group %}<span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; margin-left: 4px;">{{ p.blood_group }}</span>{% endif %}
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">
-                Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location: {{ p.district }}, {{ p.division }}
-              </div>
-            </div>
-            <form method="POST" action="{% url 'approve_user' p.id %}">
-              {% csrf_token %}
-              <button type="submit" class="btn-primary" style="padding: 6px 14px; font-size: 0.8rem; width: auto; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-                Approve User
-              </button>
-            </form>
-          </div>
-        {% endfor %}
-      </div>
+  <div class="dash-card" style="border-color: #fcd34d; margin-bottom: 1.25rem">
+    <div class="dash-card-header">
+      <h2 class="dash-card-title" style="color: #d97706; font-size: 1.1rem">
+        ⚠️ Pending User Account Approvals ({{ pending_users|length }})
+      </h2>
     </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem">
+      {% for p in pending_users %}
+      <div
+        style="
+          background: #f8fafc;
+          border: 1px solid var(--bg-card-border);
+          padding: 12px 16px;
+          border-radius: var(--radius-md);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+        "
+      >
+        <div>
+          <strong style="color: #0f172a; font-size: 0.95rem"
+            >{{ p.user.get_full_name|default:p.user.username }}</strong
+          >
+          <span
+            class="badge-status"
+            style="background: #eff6ff; color: #2563eb; margin-left: 6px"
+            >{{ p.get_role_display }}</span
+          >
+          {% if p.blood_group %}<span
+            class="badge-status"
+            style="background: #fef2f2; color: #e63946; margin-left: 4px"
+            >{{ p.blood_group }}</span
+          >{% endif %}
+          <div
+            style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px"
+          >
+            Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location:
+            {{ p.district }}, {{ p.division }}
+          </div>
+        </div>
+        <form method="POST" action="{% url 'approve_user' p.id %}">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn-primary"
+            style="
+              padding: 6px 14px;
+              font-size: 0.8rem;
+              width: auto;
+              background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+              border: none;
+            "
+          >
+            Approve User
+          </button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
   {% endif %}
 
-  <!-- Approved Accounts & Individual Reporting Section -->
+  <!-- Approved Accounts Directory & Individual Reporting Section -->
   <div class="dash-card">
-    <div class="dash-card-header" style="flex-wrap: wrap; gap: 10px;">
-      <h2 class="dash-card-title" style="font-size: 1.1rem;">Registered User Directory & Individual Reports</h2>
-      <div style="display: flex; gap: 6px;">
-        <a href="?role=all" class="filter-tab-link {% if role_filter == 'all' %}active{% endif %}">All Users</a>
-        <a href="?role=donor" class="filter-tab-link {% if role_filter == 'donor' %}active{% endif %}">Donors</a>
-        <a href="?role=seeker" class="filter-tab-link {% if role_filter == 'seeker' %}active{% endif %}">Seekers</a>
-        <a href="?role=hospital" class="filter-tab-link {% if role_filter == 'hospital' %}active{% endif %}">Hospitals</a>
+    <div class="dash-card-header" style="flex-wrap: wrap; gap: 10px">
+      <h2 class="dash-card-title" style="font-size: 1.1rem">
+        👥 Registered User Directory & Individual Reports
+      </h2>
+      <div style="display: flex; gap: 6px">
+        <a
+          href="?role=all"
+          class="filter-tab-link {% if role_filter == 'all' %}active{% endif %}"
+          >All Users</a
+        >
+        <a
+          href="?role=donor"
+          class="filter-tab-link {% if role_filter == 'donor' %}active{% endif %}"
+          >Donors</a
+        >
+        <a
+          href="?role=seeker"
+          class="filter-tab-link {% if role_filter == 'seeker' %}active{% endif %}"
+          >Seekers</a
+        >
+        <a
+          href="?role=hospital"
+          class="filter-tab-link {% if role_filter == 'hospital' %}active{% endif %}"
+          >Hospitals</a
+        >
       </div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+    <div style="display: flex; flex-direction: column; gap: 0.75rem">
       {% for p in approved_users %}
-        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px 16px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div>
-            <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ p.user.get_full_name|default:p.user.username }}</strong>
-            <span class="badge-status" style="background: rgba(59,130,246,0.2); color: #60A5FA; margin-left: 6px;">{{ p.get_role_display }}</span>
-            {% if p.blood_group %}<span class="badge-status" style="background: rgba(230,57,70,0.2); color: #F87171; margin-left: 4px;">{{ p.blood_group }}</span>{% endif %}
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px;">
-              Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location: {{ p.district }}, {{ p.division }}
-            </div>
+      <div
+        style="
+          background: #f8fafc;
+          border: 1px solid var(--bg-card-border);
+          padding: 12px 16px;
+          border-radius: var(--radius-md);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+        "
+      >
+        <div>
+          <strong style="color: #0f172a; font-size: 0.95rem"
+            >{{ p.user.get_full_name|default:p.user.username }}</strong
+          >
+          <span
+            class="badge-status"
+            style="background: #eff6ff; color: #2563eb; margin-left: 6px"
+            >{{ p.get_role_display }}</span
+          >
+          {% if p.blood_group %}<span
+            class="badge-status"
+            style="background: #fef2f2; color: #e63946; margin-left: 4px"
+            >{{ p.blood_group }}</span
+          >{% endif %}
+          <div
+            style="font-size: 0.8rem; color: var(--text-muted); margin-top: 3px"
+          >
+            Email: {{ p.user.email }} • Phone: {{ p.phone_number }} • Location:
+            {{ p.district }}, {{ p.division }}
           </div>
-          <a href="{% url 'print_donation_history_pdf' %}?target_user_id={{ p.id }}&print=1" target="_blank" class="btn-secondary" style="padding: 6px 14px; font-size: 0.8rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
-            Print Report
-          </a>
         </div>
+        <a
+          href="{% url 'print_donation_history_pdf' %}?target_user_id={{ p.id }}&print=1"
+          target="_blank"
+          class="btn-secondary"
+          style="
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            background: #eff6ff;
+            color: #2563eb;
+            border-color: #bfdbfe;
+            text-decoration: none;
+          "
+        >
+          Print Report
+        </a>
+      </div>
       {% empty %}
-        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">No users found for this role filter.</div>
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted)">
+        No users found for this role filter.
+      </div>
       {% endfor %}
     </div>
   </div>

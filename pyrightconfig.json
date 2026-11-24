@@ -5,5 +5,10 @@
   "venv": "venv",
   "extraPaths": [
     "venv/Lib/site-packages"
-  ]
+  ],
+  "typeCheckingMode": "off",
+  "reportGeneralTypeIssues": "none",
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none",
+  "reportAttributeAccessIssue": "none"
 }

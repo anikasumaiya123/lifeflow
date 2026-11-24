@@ -80,10 +80,12 @@
       border-collapse: collapse;
       margin-bottom: 2rem;
       font-size: 0.875rem;
+      color: #000000;
     }
-    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: #F8FAFC; font-weight: 700; color: #334155; }
-    tr:nth-child(even) td { background: #FAFAFA; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); color: #000000; }
+    th { background: #F8FAFC; font-weight: 700; color: #000000; }
+    td strong { color: #000000 !important; }
+    tr:nth-child(even) td { background: #FAFAFA; color: #000000; }
 
     .footer {
       margin-top: 2rem;
@@ -167,7 +169,7 @@
           <tbody>
             {% for don in donations %}
               <tr>
-                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td style="color: #000000;"><strong style="color: #000000;">{{ don.donation_date|date:"M d, Y" }}</strong></td>
                 <td>{{ don.donor.get_full_name|default:don.donor.username }}</td>
                 <td>{{ don.location_hospital }}</td>
                 <td>{{ don.recipient_name|default:"General Emergency" }}</td>
@@ -286,19 +288,19 @@
           <tbody>
             {% for don in donations %}
               <tr>
-                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
-                <td>{{ don.location_hospital }}</td>
-                <td>{{ don.recipient_name|default:"General Emergency" }}</td>
-                <td>{{ don.units_donated }} Bag(s)</td>
+                <td style="color: #000000;"><strong style="color: #000000;">{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td style="color: #000000;">{{ don.location_hospital }}</td>
+                <td style="color: #000000;">{{ don.recipient_name|default:"General Emergency" }}</td>
+                <td style="color: #000000;">{{ don.units_donated }} Bag(s)</td>
                 <td><span style="color:#059669; font-weight:700;">{{ don.get_status_display }}</span></td>
               </tr>
             {% endfor %}
             {% for don in hospital_verified %}
               <tr>
-                <td><strong>{{ don.donation_date|date:"M d, Y" }}</strong></td>
-                <td>{{ don.location_hospital }} (Verified at Hospital)</td>
-                <td>Donor: {{ don.donor.get_full_name|default:don.donor.username }}</td>
-                <td>{{ don.units_donated }} Bag(s)</td>
+                <td style="color: #000000;"><strong style="color: #000000;">{{ don.donation_date|date:"M d, Y" }}</strong></td>
+                <td style="color: #000000;">{{ don.location_hospital }} (Verified at Hospital)</td>
+                <td style="color: #000000;">Donor: {{ don.donor.get_full_name|default:don.donor.username }}</td>
+                <td style="color: #000000;">{{ don.units_donated }} Bag(s)</td>
                 <td><span style="color:#059669; font-weight:700;">Verified</span></td>
               </tr>
             {% endfor %}
@@ -323,8 +325,8 @@
           <tbody>
             {% for req in requests %}
               <tr>
-                <td>{{ req.created_at|date:"M d, Y" }}</td>
-                <td><strong>{{ req.patient_name }}</strong></td>
+                <td style="color: #000000; font-weight: 700;">{{ req.created_at|date:"M d, Y" }}</td>
+                <td style="color: #000000;"><strong style="color: #000000;">{{ req.patient_name }}</strong></td>
                 <td><span style="color:var(--primary); font-weight:700;">{{ req.blood_group }}</span></td>
                 <td>{{ req.units_required }} Bag(s)</td>
                 <td>{{ req.hospital_name }} ({{ req.district }})</td>

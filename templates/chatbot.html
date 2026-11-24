@@ -1,40 +1,40 @@
 <!-- LifeFlow Blood Assistant Floating Chatbot Widget -->
 <div id="chatbot-container" style="position: fixed; bottom: 24px; right: 24px; z-index: 9999;">
   <!-- Trigger Button -->
-  <button id="chatbot-toggle" onclick="toggleChatbot()" title="Blood Donation Assistant" style="width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #E63946 0%, #D62828 100%); color: #FFF; border: none; box-shadow: 0 8px 24px rgba(230,57,70,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
+  <button id="chatbot-toggle" onclick="toggleChatbot()" title="Blood Donation Assistant" style="width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, #E63946 0%, #D62828 100%); color: #FFF; border: none; box-shadow: 0 4px 12px rgba(15,23,42,0.15); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">
     <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
     </svg>
   </button>
 
   <!-- Chat Window -->
-  <div id="chatbot-window" style="display: none; position: absolute; bottom: 68px; right: 0; width: 340px; height: 460px; background: #0F172A; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); flex-direction: column; overflow: hidden;">
+  <div id="chatbot-window" style="display: none; position: absolute; bottom: 68px; right: 0; width: 340px; height: 460px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 10px 30px rgba(15,23,42,0.15); flex-direction: column; overflow: hidden;">
     <!-- Header -->
-    <div style="background: rgba(30,41,59,0.9); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <div style="background: #F8FAFC; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E2E8F0;">
       <div style="display: flex; align-items: center; gap: 8px;">
         <span style="width: 10px; height: 10px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
-        <strong style="color: #FFF; font-size: 0.9rem;">LifeFlow Blood Assistant</strong>
+        <strong style="color: #0F172A; font-size: 0.9rem;">LifeFlow Blood Assistant</strong>
       </div>
       <button onclick="toggleChatbot()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">&times;</button>
     </div>
 
     <!-- Messages Area -->
-    <div id="chat-messages" style="flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.825rem; color: #E2E8F0;">
-      <div style="background: rgba(30,41,59,0.8); padding: 10px 12px; border-radius: 10px; max-width: 88%; line-height: 1.4; border: 1px solid rgba(255,255,255,0.05);">
+    <div id="chat-messages" style="flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 0.825rem; color: #0F172A;">
+      <div style="background: #F1F5F9; padding: 10px 12px; border-radius: 10px; max-width: 88%; line-height: 1.4; border: 1px solid #E2E8F0;">
         Hi {{ user.first_name|default:user.username }}! Ask me anything about blood donation eligibility, group matching, or emergency requests.
       </div>
     </div>
 
     <!-- Quick Prompt Suggestions -->
-    <div style="padding: 6px 10px; display: flex; gap: 6px; overflow-x: auto; background: rgba(15,23,42,0.8); border-top: 1px solid rgba(255,255,255,0.05);">
-      <button onclick="sendQuickPrompt('Who can donate?')" style="white-space: nowrap; font-size: 0.725rem; background: rgba(59,130,246,0.15); color: #60A5FA; border: 1px solid rgba(59,130,246,0.3); border-radius: 12px; padding: 3px 8px; cursor: pointer;">Eligibility</button>
-      <button onclick="sendQuickPrompt('Blood matching')" style="white-space: nowrap; font-size: 0.725rem; background: rgba(16,185,129,0.15); color: #34D399; border: 1px solid rgba(16,185,129,0.3); border-radius: 12px; padding: 3px 8px; cursor: pointer;">Matching</button>
-      <button onclick="sendQuickPrompt('Donation tips')" style="white-space: nowrap; font-size: 0.725rem; background: rgba(245,158,11,0.15); color: #FBBF24; border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 3px 8px; cursor: pointer;">Tips</button>
+    <div style="padding: 6px 10px; display: flex; gap: 6px; overflow-x: auto; background: #F8FAFC; border-top: 1px solid #E2E8F0;">
+      <button onclick="sendQuickPrompt('Who can donate?')" style="white-space: nowrap; font-size: 0.725rem; background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; border-radius: 12px; padding: 3px 8px; cursor: pointer;">Eligibility</button>
+      <button onclick="sendQuickPrompt('Blood matching')" style="white-space: nowrap; font-size: 0.725rem; background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; border-radius: 12px; padding: 3px 8px; cursor: pointer;">Matching</button>
+      <button onclick="sendQuickPrompt('Donation tips')" style="white-space: nowrap; font-size: 0.725rem; background: #FEF3C7; color: #D97706; border: 1px solid #FCD34D; border-radius: 12px; padding: 3px 8px; cursor: pointer;">Tips</button>
     </div>
 
     <!-- Input Form -->
-    <form id="chatbot-form" onsubmit="handleChatSubmit(event)" style="display: flex; padding: 8px; background: #1E293B; border-top: 1px solid rgba(255,255,255,0.08);">
-      <input type="text" id="chat-input" placeholder="Ask a question..." style="flex: 1; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.1); color: #FFF; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none;">
+    <form id="chatbot-form" onsubmit="handleChatSubmit(event)" style="display: flex; padding: 8px; background: #FFFFFF; border-top: 1px solid #E2E8F0;">
+      <input type="text" id="chat-input" placeholder="Ask a question..." style="flex: 1; background: #F8FAFC; border: 1px solid #CBD5E1; color: #0F172A; padding: 6px 10px; border-radius: 8px; font-size: 0.8rem; outline: none;">
       <button type="submit" style="background: var(--primary); color: #FFF; border: none; padding: 6px 12px; border-radius: 8px; margin-left: 6px; cursor: pointer; font-size: 0.8rem;">Send</button>
     </form>
   </div>
@@ -44,6 +44,9 @@
   function toggleChatbot() {
     const win = document.getElementById('chatbot-window');
     win.style.display = (win.style.display === 'none' || !win.style.display) ? 'flex' : 'none';
+    if (win.style.display === 'flex') {
+      document.getElementById('chat-input').focus();
+    }
   }
 
   function sendQuickPrompt(text) {
@@ -61,30 +64,45 @@
     msgs.innerHTML += `<div style="background: linear-gradient(135deg, #E63946 0%, #D62828 100%); color: #FFF; padding: 8px 12px; border-radius: 10px; max-width: 85%; align-self: flex-end; line-height: 1.4;">${escapeHtml(query)}</div>`;
     input.value = '';
 
-    const reply = getBotReply(query.toLowerCase());
-    setTimeout(() => {
-      msgs.innerHTML += `<div style="background: rgba(30,41,59,0.9); color: #E2E8F0; padding: 10px 12px; border-radius: 10px; max-width: 88%; align-self: flex-start; line-height: 1.4; border: 1px solid rgba(255,255,255,0.08);">${reply}</div>`;
+    // Typing indicator
+    const typingId = 'typing-' + Date.now();
+    msgs.innerHTML += `<div id="${typingId}" style="background: #F1F5F9; color: #64748B; padding: 8px 12px; border-radius: 10px; max-width: 88%; align-self: flex-start; line-height: 1.4; border: 1px solid #E2E8F0; font-style: italic; font-size: 0.775rem;">LifeFlow AI is typing...</div>`;
+    msgs.scrollTop = msgs.scrollHeight;
+
+    fetch("{% url 'chatbot_api' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ query: query })
+    })
+    .then(res => res.json())
+    .then(data => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+
+      const replyHtml = data.reply || "I am your LifeFlow AI Assistant! Ask me about donor eligibility, blood group matching, emergency requests, or verified hospital stocks.";
+      msgs.innerHTML += `<div style="background: #F1F5F9; color: #0F172A; padding: 10px 12px; border-radius: 10px; max-width: 88%; align-self: flex-start; line-height: 1.45; border: 1px solid #E2E8F0;">${replyHtml}</div>`;
       msgs.scrollTop = msgs.scrollHeight;
-    }, 300);
+    })
+    .catch(err => {
+      const typingEl = document.getElementById(typingId);
+      if (typingEl) typingEl.remove();
+
+      msgs.innerHTML += `<div style="background: #F1F5F9; color: #0F172A; padding: 10px 12px; border-radius: 10px; max-width: 88%; align-self: flex-start; line-height: 1.4; border: 1px solid #E2E8F0;">${getBotReplyFallback(query.toLowerCase())}</div>`;
+      msgs.scrollTop = msgs.scrollHeight;
+    });
   }
 
-  function getBotReply(q) {
+  function getBotReplyFallback(q) {
     if (q.includes('eligible') || q.includes('who can donate') || q.includes('requirement')) {
       return "Donors can donate blood once every 90 days (3 months). Must be 18–60 years old, weigh at least 45 kg, and be in healthy condition.";
     }
     if (q.includes('match') || q.includes('group') || q.includes('compatible') || q.includes('can donate to')) {
       return "Blood Group Compatibility:<br>• <strong>O-</strong>: Donates to all (Universal Donor)<br>• <strong>O+</strong>: Donates to O+, A+, B+, AB+<br>• <strong>A-</strong>: Donates to A-, A+, AB-, AB+<br>• <strong>A+</strong>: Donates to A+, AB+<br>• <strong>B-</strong>: Donates to B-, B+, AB-, AB+<br>• <strong>B+</strong>: Donates to B+, AB+<br>• <strong>AB-</strong>: Donates to AB-, AB+<br>• <strong>AB+</strong>: Donates to AB+ only.";
     }
-    if (q.includes('tip') || q.includes('before') || q.includes('after') || q.includes('prepare')) {
-      return "Preparation Tips:<br>• Drink 500ml water before donation.<br>• Eat a full meal within 4 hours.<br>• Rest for 15 minutes post-donation.<br>• Avoid heavy physical activity for 24 hours.";
-    }
-    if (q.includes('request') || q.includes('seeker') || q.includes('post')) {
-      return "To request emergency blood, click 'Post Request' in the top nav or Seeker dashboard. Fill out patient details and hospital location to alert nearby donors!";
-    }
-    if (q.includes('hospital') || q.includes('stock') || q.includes('bank')) {
-      return "Registered hospitals maintain real-time blood stock inventory. Check 'Hospital Stock Available' under your active requests or when searching donors.";
-    }
-    return "I'm your LifeFlow Blood Assistant! You can ask me about blood donor eligibility, blood group matching, donation safety tips, or emergency requests.";
+    return "I am your LifeFlow AI Assistant! Ask me about donor eligibility, blood group matching, emergency requests, or verified hospital stocks.";
   }
 
   function escapeHtml(text) {

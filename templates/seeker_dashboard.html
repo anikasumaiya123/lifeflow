@@ -9,8 +9,8 @@
   <!-- Seeker Overview Header -->
   <div class="dashboard-header-card">
     <div class="donor-info-group">
-      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);">
-        
+      <div class="donor-avatar-badge" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); width: 52px; height: 52px; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+        🩺
       </div>
       <div>
         <h1 class="donor-details-name">{{ user.get_full_name|default:user.username }}</h1>
@@ -25,17 +25,56 @@
     </div>
 
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: rgba(59,130,246,0.2); color: #60A5FA; border-color: rgba(59,130,246,0.3); text-decoration: none;">
+      <a href="{% url 'print_donation_history_pdf' %}?print=1" target="_blank" class="btn-secondary" style="padding: 10px 16px; font-size: 0.85rem; background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; text-decoration: none;">
         Print PDF Statement
-      </a>
-      <a href="{% url 'find_donors' %}" class="btn-secondary" style="padding: 10px 18px;">
-         Search Nearby Donors
-      </a>
-      <a href="{% url 'post_request' %}" class="btn-primary" style="width: auto; padding: 10px 18px;">
-         Post Emergency Request
       </a>
     </div>
   </div>
+
+  {% if user_notifications %}
+    <div class="dash-card" style="margin-bottom: 1.25rem;">
+      <div class="dash-card-header" style="margin-bottom: 0.5rem;">
+        <h2 class="dash-card-title" style="display: flex; align-items: center; gap: 8px;">
+          <span> Notifications & In-App Alerts</span>
+          {% if unread_notifications_count > 0 %}
+            <span class="badge-status" style="background: #FEF2F2; color: #E63946; font-weight: 800;">{{ unread_notifications_count }} Unread</span>
+          {% endif %}
+        </h2>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+        {% for notif in user_notifications %}
+          <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 10px 14px; border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+              <span style="font-size: 1.2rem; line-height: 1;">
+                {% if notif.notification_type == 'emergency_request' %}
+                  🚨
+                {% elif notif.notification_type == 'response_received' %}
+                  🙋
+                {% elif notif.notification_type == 'stock_supplied' %}
+                  
+                {% else %}
+                  📩
+                {% endif %}
+              </span>
+              <div>
+                <strong style="color: #0F172A; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+                  {{ notif.title }}
+                  <span style="font-size: 0.7rem; color: #64748B; background: #F1F5F9; padding: 2px 6px; border-radius: 4px; font-weight: normal;">
+                    {{ notif.get_notification_type_display }}
+                  </span>
+                </strong>
+                <div style="font-size: 0.8rem; color: var(--text-main); margin-top: 3px; white-space: pre-line;">{{ notif.message }}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); opacity: 0.8; margin-top: 4px;">{{ notif.created_at|timesince }} ago ({{ notif.created_at|date:"M d, g:i A" }})</div>
+              </div>
+            </div>
+            {% if notif.link %}
+              <a href="{{ notif.link }}" class="btn-secondary" style="padding: 5px 12px; font-size: 0.75rem; white-space: nowrap; background: var(--primary); color: #FFF; border: none;">View Details</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 
   <!-- Dashboard Stats -->
   <div class="stat-summary-grid" style="grid-template-columns: repeat(4, 1fr);">
@@ -52,7 +91,7 @@
       <div class="dash-stat-lbl">Total Requests Posted</div>
     </div>
     <div class="dash-stat-box">
-      <div class="dash-stat-val" style="color: #34D399;">{{ nearby_donors_count }}</div>
+      <div class="dash-stat-val" style="color: #059669;">{{ nearby_donors_count }}</div>
       <div class="dash-stat-lbl">Available Donors in {{ profile.division }}</div>
     </div>
   </div>
@@ -107,16 +146,13 @@
       {% if my_requests %}
         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
           {% for req in my_requests %}
-            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
+            <div style="background: #F8FAFC; border: 1px solid var(--bg-card-border); padding: 12px; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #FFFFFF; font-size: 0.95rem;">{{ req.patient_name }} ({{ req.blood_group }})</strong>
+                <strong style="color: #0F172A; font-size: 0.95rem;">{{ req.clean_patient_name }} ({{ req.blood_group }})</strong>
                 <div style="font-size: 0.775rem; color: var(--text-muted); margin-top: 2px;">
                    {{ req.hospital_name }} • Status: <strong>{{ req.get_status_display }}</strong>
                 </div>
               </div>
-              <a href="{% url 'find_donors' %}?blood_group={{ req.blood_group|urlencode }}&division={{ req.division|urlencode }}" class="btn-secondary" style="padding: 6px 12px; font-size: 0.75rem;">
-                Find Matches
-              </a>
             </div>
           {% endfor %}
         </div>

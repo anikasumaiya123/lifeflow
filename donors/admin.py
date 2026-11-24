@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, DonationHistory, BloodRequest, HospitalInventory
+from .models import UserProfile, DonationHistory, BloodRequest, HospitalInventory, Notification
 
 @admin.action(description="Approve selected user accounts")
 def approve_users(modeladmin, request, queryset):
@@ -33,3 +33,10 @@ class HospitalInventoryAdmin(admin.ModelAdmin):
     list_filter = ('blood_group',)
     search_fields = ('hospital__username', 'hospital__first_name')
     list_editable = ('units',)
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('recipient', 'sender', 'title', 'is_read', 'created_at')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('recipient__username', 'title', 'message')
+

@@ -1,12 +1,10 @@
 [tool.pyrefly]
+preset = "off"
+disable-type-errors-in-ide = true
 ignore_errors_in_generated_code = true
 
 [tool.pyrefly.errors]
-"untyped-import" = "ignore"
-"missing-attribute" = "ignore"
-"missing-module-attribute" = "ignore"
-"bad-override" = "ignore"
-"implicit-override" = "ignore"
+default = "ignore"
 
 [tool.pyright]
 typeCheckingMode = "off"

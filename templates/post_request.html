@@ -16,8 +16,17 @@
       Submit an urgent blood request to alert nearby verified blood donors and hospitals in your division and district across Bangladesh.
     </p>
 
+    {% if target_donor %}
+      <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 1.25rem; color: #2563EB; font-size: 0.9rem; display: flex; align-items: center; gap: 10px;">
+        <span>Direct Request for: <strong>{{ target_donor.get_full_name|default:target_donor.username }}</strong> {% if target_donor.profile.blood_group %}({{ target_donor.profile.blood_group }}){% endif %}</span>
+      </div>
+    {% endif %}
+
     <form method="POST" action="{% url 'post_request' %}">
       {% csrf_token %}
+      {% if target_donor %}
+        <input type="hidden" name="target_donor_id" value="{{ target_donor.id }}">
+      {% endif %}
 
       <div class="form-row">
         <div class="form-group">
@@ -86,7 +95,7 @@
 {% block extra_js %}
 <script>
   const bdDistricts = {
-    Dhaka: ['Mirpur', 'Dhanmondi, Uttara, Gulshan', 'Banani', 'Gazipur', 'Narayanganj', 'Tangail', 'Faridpur', 'Manikganj'],
+    Dhaka: ['Mirpur', 'Dhanmondi', 'Uttara', 'Gulshan', 'Banani', 'Gazipur', 'Narayanganj', 'Tangail', 'Faridpur', 'Manikganj'],
     Chattogram: ['Chattogram City', "Cox's Bazar", 'Cumilla', 'Feni', 'Noakhali'],
     Sylhet: ['Sylhet City', 'Moulvibazar', 'Habiganj', 'Sunamganj'],
     Rajshahi: ['Rajshahi City', 'Bogura', 'Pabna', 'Sirajganj'],

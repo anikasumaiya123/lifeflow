@@ -9,7 +9,62 @@
   
   <!-- Plus Jakarta Sans Fonts -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}?v=noredshadows20260916">
+  <style>
+    /* Force Pure White Light Theme Override */
+    :root {
+      --bg-dark: #FFFFFF !important;
+      --bg-card: #FFFFFF !important;
+      --bg-card-border: #E2E8F0 !important;
+      --input-bg: #FFFFFF !important;
+      --input-border: #CBD5E1 !important;
+      --text-main: #1E293B !important;
+      --text-muted: #64748B !important;
+    }
+    html, body {
+      background-color: #FFFFFF !important;
+      background-image: none !important;
+      color: #1E293B !important;
+    }
+    .app-nav {
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #E2E8F0 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    }
+    .brand-name {
+      color: #0F172A !important;
+    }
+    .nav-link {
+      color: #64748B !important;
+    }
+    .nav-link:hover {
+      color: #0F172A !important;
+      background: #F1F5F9 !important;
+    }
+    .auth-wrapper, .dash-card, .dashboard-header-card {
+      background: #FFFFFF !important;
+      border: 1px solid #E2E8F0 !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+    .form-control {
+      background-color: #FFFFFF !important;
+      border-color: #CBD5E1 !important;
+      color: #0F172A !important;
+    }
+    .stat-card, .dash-stat-box {
+      background-color: #F8FAFC !important;
+      border: 1px solid #E2E8F0 !important;
+    }
+    .stat-number, .donor-details-name, .hero-title, .form-title, .dash-card-title, .dash-stat-val {
+      color: #0F172A !important;
+    }
+    :target {
+      scroll-margin-top: 80px;
+      border-color: #E63946 !important;
+      box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.25) !important;
+      transition: all 0.3s ease;
+    }
+  </style>
 
   <!-- OpenStreetMap Leaflet.js CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -35,17 +90,25 @@
       Emergency Network Active
     </div>
 
-    <nav class="nav-links">
-      <a href="{% url 'find_donors' %}" class="nav-link">Find Donors</a>
+
+    <nav class="nav-links" id="appNavLinks">
+      <a href="{% url 'find_donors' %}" class="nav-link {% if request.resolver_match.url_name == 'find_donors' %}active{% endif %}">Find Donors</a>
       {% if user.is_authenticated %}
-        <a href="{% url 'post_request' %}" class="nav-link">Post Request</a>
-        <a href="{% url 'my_requests' %}" class="nav-link">My Requests</a>
-        <a href="{% url 'print_donation_history_pdf' %}?print=1" class="nav-link" target="_blank" style="color: #60A5FA; font-weight: 700;">Download PDF</a>
-        <a href="{% url 'dashboard' %}" class="nav-link">Dashboard</a>
-        <a href="{% url 'logout' %}" class="btn-secondary" style="padding: 5px 14px; font-size: 0.8rem;">Sign Out</a>
+        <a href="{% url 'post_request' %}" class="nav-link {% if request.resolver_match.url_name == 'post_request' %}active{% endif %}">Post Request</a>
+        <a href="{% url 'my_requests' %}" class="nav-link {% if request.resolver_match.url_name == 'my_requests' %}active{% endif %}">My Requests</a>
+        {% if not profile or profile.role == 'donor' %}
+          <a href="{% url 'print_donation_history_pdf' %}?print=1" class="nav-link {% if request.resolver_match.url_name == 'print_donation_history_pdf' %}active{% endif %}" target="_blank" style="color: #2563EB; font-weight: 700;">Download PDF</a>
+        {% endif %}
+        <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" style="display: inline-flex; align-items: center; gap: 4px;">
+          Dashboard
+          {% if unread_notifications_count > 0 %}
+            <span style="background: #E63946; color: #FFFFFF; font-size: 0.7rem; font-weight: 800; border-radius: 10px; padding: 2px 7px; line-height: 1;">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </a>
+        <a href="{% url 'logout' %}" class="btn-secondary" style="padding: 5px 14px; font-size: 0.8rem; text-align: center;">Sign Out</a>
       {% else %}
-        <a href="{% url 'login' %}" class="nav-link">Sign In</a>
-        <a href="{% url 'register' %}" class="btn-secondary" style="padding: 5px 14px; font-size: 0.8rem;">Create Account</a>
+        <a href="{% url 'login' %}" class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}">Sign In</a>
+        <a href="{% url 'register' %}" class="btn-secondary" style="padding: 5px 14px; font-size: 0.8rem; text-align: center;">Create Account</a>
       {% endif %}
     </nav>
   </header>
@@ -55,7 +118,7 @@
     <div class="messages-container">
       {% for message in messages %}
         <div class="alert-message alert-{{ message.tags }}">
-          <span>{{ message }}</span>
+          <span>{{ message|safe }}</span>
           <button onclick="this.parentElement.remove()" style="background:none; border:none; color:inherit; cursor:pointer; font-weight:bold;">&times;</button>
         </div>
       {% endfor %}
@@ -64,13 +127,14 @@
 
   {% block content %}{% endblock %}
 
-  <footer style="border-top: 1px solid rgba(255,255,255,0.08); padding: 1.25rem 2rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 3rem;">
+  <footer style="border-top: 1px solid #E2E8F0; padding: 1.25rem 2rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 3rem;">
     &copy; {% now "Y" %} LifeFlow BD • Emergency Blood Network across Bangladesh
   </footer>
 
+
   {% block extra_js %}{% endblock %}
 
-  {% if user.is_authenticated %}
+  {% if user.is_authenticated and profile and profile.role != 'hospital' %}
     {% include 'chatbot.html' %}
   {% endif %}
 </body>
